@@ -1,4 +1,4 @@
-import { db, ResearchItem } from './database'
+import { db, ResearchItem, AIRun } from './database'
 
 export async function createResearchItem(
   title: string,
@@ -62,4 +62,32 @@ export async function updateResearchItem(
 
 export async function deleteResearchItem(id: number): Promise<void> {
   await db.researchItems.delete(id)
+}
+
+export async function getLatestAIRunForResearchItem(
+  researchItemId: number,
+): Promise<AIRun | undefined> {
+  const runs = await db.aiRuns
+    .where('researchItemId')
+    .equals(researchItemId)
+    .sortBy('createdAt')
+
+  return runs[runs.length - 1]
+}
+
+export async function getInsightRunsForResearchItem(
+  researchItemId: number,
+): Promise<{ summaryRun?: AIRun; deepRun?: AIRun }> {
+  const runs = await db.aiRuns
+    .where('researchItemId')
+    .equals(researchItemId)
+    .sortBy('createdAt')
+
+  const summaryRuns = runs.filter((run) => !run.steps || run.steps.length === 0)
+  const deepRuns = runs.filter((run) => run.steps && run.steps.length > 0)
+
+  return {
+    summaryRun: summaryRuns[summaryRuns.length - 1],
+    deepRun: deepRuns[deepRuns.length - 1],
+  }
 }

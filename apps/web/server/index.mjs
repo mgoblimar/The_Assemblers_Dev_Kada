@@ -22,50 +22,120 @@ app.post('/api/scrape', async (req, res) => {
   let browser = null
   try {
     browser = await puppeteer.launch({ 
-      headless: "new",
+      headless: "new", // Use 'new' headless mode
       args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     })
     
     const page = await browser.newPage()
     
-    // Set a realistic viewport
+    // Set a realistic viewport and User-Agent
     await page.setViewport({ width: 1280, height: 800 })
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     
     // Wait for network to be idle to catch JS-loaded content
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 45000 })
 
     // Extract content specifically designed for research papers
     const data = await page.evaluate(() => {
-      // 1. Try to find the title
-      const title = document.querySelector('h1')?.innerText || 
+      const getMetadata = (name) => {
+        return document.querySelector(`meta[name="${name}"]`)?.content || 
+               document.querySelector(`meta[property="${name}"]`)?.content || 
+               document.querySelector(`meta[property="og:${name}"]`)?.content || 
+               document.querySelector(`meta[name="citation_${name}"]`)?.content || "";
+      };
+
+      // 1. Try to find the title from meta or h1
+      const title = getMetadata('title') || 
+                    getMetadata('citation_title') ||
+                    document.querySelector('h1')?.innerText || 
                     document.querySelector('title')?.innerText || 
                     'Academic Paper';
 
       // 2. Select common academic content areas (Abstract, Content, etc.)
       const selectors = [
-        '.abstract', '#abstract', '.article-content', '#article-content',
-        'main', 'article', '.main-content'
+        '[data-selenium="abstract"]',
+        '.abstract', 
+        '#abstract', 
+        '.article-content', 
+        '#article-content',
+        'section.abstract',
+        '.sv-abstract-text', // Elsevier/ScienceDirect
+        '.abstract-content',
+        '#eng-abstract',     // PubMed
+        '.abstract-text',
+        '.abstract p',
+        '.c-article-section__content', // Nature
+        '.article__teaser',            // Nature
+        '.article__body',
+        '.article-section__content',
+        'article',
+        'main',
+        '#main-content',
+        '.main-content',
+        '#content'
       ]
       
-      let contentElement = null
+      let textContent = "";
+      
+      // Try to find the largest content block among selectors
+      let bestContent = "";
       for (const s of selectors) {
-        contentElement = document.querySelector(s)
-        if (contentElement) break
+        const elements = document.querySelectorAll(s);
+        for (const el of elements) {
+          const text = el.innerText.trim();
+          if (text.length > bestContent.length) {
+            bestContent = text;
+          }
+        }
+        // If we found something substantial, we can stop if it's one of the specific ones
+        if (bestContent.length > 500 && s !== 'article' && s !== 'main') {
+          break;
+        }
+      }
+      textContent = bestContent;
+
+      // 3. Fallback: If nothing found, try to get all paragraphs
+      if (textContent.length < 200) {
+        const paragraphs = Array.from(document.querySelectorAll('p'))
+          .map(p => p.innerText.trim())
+          .filter(txt => txt.length > 40)
+          .join('\n\n');
+        
+        if (paragraphs.length > textContent.length) {
+          textContent = paragraphs;
+        }
       }
 
-      // If no specific container, use body but strip common junk
-      const target = contentElement || document.body
-      
-      // Temporary removal of junk for cleaner extraction
-      const junk = target.querySelectorAll('nav, footer, header, script, style, .sidebar, .ad, .menu')
-      junk.forEach(j => j.style.display = 'none')
+      // 4. Sibling Check: If we have a header "Abstract", maybe the content is next
+      if (textContent.length < 200) {
+        const headers = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, strong'));
+        for (const h of headers) {
+          if (h.innerText.toLowerCase().includes('abstract') && h.innerText.length < 20) {
+            const parent = h.parentElement;
+            if (parent && parent.innerText.length > 200) {
+              textContent = parent.innerText;
+              break;
+            }
+            const next = h.nextElementSibling;
+            if (next && next.innerText.length > 100) {
+              textContent = next.innerText;
+              break;
+            }
+          }
+        }
+      }
 
-      const text = target.innerText
+      // 5. Meta Fallback (Last resort)
+      if (textContent.length < 100) {
+        textContent = getMetadata('description') || getMetadata('citation_abstract') || textContent;
+      }
+
+      const cleanText = textContent
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 15000);
 
-      return { title, text }
+      return { title, text: cleanText }
     })
 
     console.log(`[PROXY] Successfully scraped ${data.text.length} chars`)
