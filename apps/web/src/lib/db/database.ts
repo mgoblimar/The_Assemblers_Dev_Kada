@@ -29,6 +29,7 @@ export interface OutboxEntry {
   status: 'pending' | 'synced' | 'failed'
   retryCount: number
   createdAt: Date
+  updatedAt?: Date
 }
 
 export class ResearchDatabase extends Dexie {

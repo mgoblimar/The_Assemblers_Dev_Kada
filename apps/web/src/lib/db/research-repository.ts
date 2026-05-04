@@ -5,12 +5,24 @@ export async function createResearchItem(
   sourceText: string,
 ): Promise<ResearchItem> {
   const now = new Date()
-  const id = await db.researchItems.add({
+  const payload = {
     title,
     sourceText,
     createdAt: now,
     updatedAt: now,
-    syncStatus: 'pending',
+    syncStatus: 'pending' as const,
+  }
+  const id = await db.researchItems.add(payload)
+
+  // Add to outbox
+  await db.outbox.add({
+    entityType: 'research_item',
+    entityId: id,
+    operation: 'create',
+    payload,
+    status: 'pending',
+    retryCount: 0,
+    createdAt: now,
   })
 
   const item = await db.researchItems.get(id)
@@ -30,9 +42,21 @@ export async function updateResearchItem(
   id: number,
   updates: Partial<ResearchItem>,
 ): Promise<void> {
+  const now = new Date()
   await db.researchItems.update(id, {
     ...updates,
-    updatedAt: new Date(),
+    updatedAt: now,
+  })
+
+  // Add to outbox for update
+  await db.outbox.add({
+    entityType: 'research_item',
+    entityId: id,
+    operation: 'update',
+    payload: updates,
+    status: 'pending',
+    retryCount: 0,
+    createdAt: now,
   })
 }
 

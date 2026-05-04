@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "cd server && npm start",
+    "dev:all": "npm run dev & npm run server",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
     "dexie": "^4.4.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
