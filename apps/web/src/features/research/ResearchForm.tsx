@@ -34,9 +34,43 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
     }
   }
 
+  const handleSeed = async () => {
+    setLoading(true)
+    try {
+      const demoItems = [
+        { 
+          title: 'The Future of Neural Interfaces', 
+          text: 'Recent breakthroughs in high-bandwidth neural interfaces are allowing for direct brain-to-computer communication with lower latency than ever before. Companies like Neuralink and Synchron are leading the way in clinical trials...' 
+        },
+        { 
+          title: 'Sustainable Fusion Energy 2026', 
+          text: 'The latest results from the ITER project suggest that Q-factor sustainability is finally within reach. Commercial fusion power plants are being projected for the early 2030s, promising carbon-free baseload power.' 
+        }
+      ]
+      
+      for (const item of demoItems) {
+        await createResearchItem(item.title, item.text)
+      }
+      onItemCreated()
+    } catch (err) {
+      setError('Failed to seed data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 className="text-xl font-bold mb-4">New Research Item</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">New Research Item</h2>
+        <button 
+          type="button" 
+          onClick={handleSeed}
+          className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+        >
+          [Seed Demo Data]
+        </button>
+      </div>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">

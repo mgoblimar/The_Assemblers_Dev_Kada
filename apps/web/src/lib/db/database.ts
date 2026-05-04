@@ -18,6 +18,11 @@ export interface AIRun {
   output: string
   status: 'pending' | 'completed' | 'failed'
   createdAt: Date
+  steps?: {
+    name: string
+    status: 'pending' | 'completed' | 'failed'
+    output?: string
+  }[]
 }
 
 export interface OutboxEntry {

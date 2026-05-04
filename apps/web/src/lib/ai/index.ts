@@ -1,6 +1,7 @@
 import { generateWithGemini } from './gemini'
 import { generateWithGroq } from './groq'
 import { db } from '@/lib/db/database'
+import { buildResearchPrompt } from './prompts'
 
 const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
 
@@ -27,7 +28,7 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
     const item = await db.researchItems.get(researchItemId)
     if (!item) throw new Error('Research item not found')
 
-    const prompt = `Summarize and extract key insights from the following research content:\n\nTitle: ${item.title}\n\nContent:\n${item.sourceText}`
+    const prompt = buildResearchPrompt(item.title, item.sourceText)
 
     // update the run with prompt
     await db.aiRuns.update(runId, { prompt })
@@ -38,7 +39,7 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
 
     await db.aiRuns.update(runId, { output: result, status: 'completed' })
 
-    // Add to outbox
+    // Add to outbox for sync
     const finalRun = await db.aiRuns.get(runId)
     if (finalRun) {
       await db.outbox.add({
@@ -57,7 +58,7 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
     const errorMsg = err instanceof Error ? err.message : String(err)
     await db.aiRuns.update(runId, { status: 'failed', output: errorMsg })
     
-    // Add failed run to outbox too
+    // Also sync failed runs so they show up in the audit trail
     const finalRun = await db.aiRuns.get(runId)
     if (finalRun) {
       await db.outbox.add({
