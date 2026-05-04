@@ -1,86 +1,92 @@
-# The Assemblers DevKada 2026 Project
+# ResearchAI: Agentic Research Assistant
 
-Research tool with AI-powered and agentic workflows, designed for a fast hackathon build with an offline-first foundation.
+**DevKada 2026 Hackathon | The Assemblers**
 
-## Hackathon Info
+ResearchAI is a high-performance, offline-first research assistant that combines local-first reliability with the power of agentic AI and seamless cloud synchronization.
 
-- Event: DevKada 2026 Hackathon
-- Team: The Assemblers
-- Team size: 4
-- Duration: Week-long sprint (May 3 to May 7, 2026)
-- Theme: Build From Anywhere, Build Anything
+## 🚀 The Core Vision
+Researchers often work in environments with unstable connectivity. ResearchAI ensures that **no insight is lost** by prioritizing local persistence while leveraging cloud AI and databases whenever a connection is available.
 
-## Project Vision
+---
 
-Build a practical research assistant that works reliably in real-world connectivity conditions:
+## 🏗️ Architecture Overview
 
-- Fast cloud AI responses when online
-- Local-first data behavior for offline resilience
-- Sync to cloud storage when connection returns
+### 1. Offline-First Foundation (Local-First)
+*   **Database:** Powered by **Dexie (IndexedDB)** for robust browser-side storage.
+*   **Availability:** Every action (creation, editing, AI execution) is possible offline.
+*   **Outbox Pattern:** Changes are queued locally and automatically synchronized to the cloud when a connection is restored.
 
-The goal is to demo a complete, useful workflow first, then extend to mobile.
+### 2. Agentic AI Layer
+*   **Multi-Step Workflow:** Unlike simple summarizers, our agent performs a 3-step pipeline: **Summarize → Extract Actions → Categorize**.
+*   **Provider Agnostic:** Built with an adapter pattern supporting both **Google Gemini** and **Groq (Llama 3)**.
+*   **History & Audit:** Every AI execution is stored as an "AI Run" with a full timeline of steps and outputs.
 
-## Current Product Strategy
+### 3. Real-time Sync & Security
+*   **Backend:** **Supabase** handles cloud persistence and real-time data broadcasting.
+*   **Security:** Full **Supabase Auth** integration with Row-Level Security (RLS) to ensure user data privacy.
 
-- Priority: Speed-to-demo + offline-first architecture
-- Platform order: Web first, then mobile if time permits
-- MVP focus: Core research flow (no auth in MVP)
-- AI strategy: Cloud-first now, local model support later
+---
 
-## Planned Stack
+## 📈 The Implementation Journey (Phases)
 
-### Web
+| Phase | Milestone | Key Deliverables |
+| :--- | :--- | :--- |
+| **Phase 1** | **Foundation** | Vite + React + Tailwind + Dexie setup. |
+| **Phase 2** | **Offline CRUD** | Research input/list with local persistence. |
+| **Phase 3** | **Cloud AI** | Gemini/Groq adapters and AI Run history. |
+| **Phase 4** | **Cloud Sync** | Outbox processor and Supabase integration. |
+| **Phase 5** | **Polish & Demo** | Shadcn UI modernization and Demo seeding. |
+| **Phase 6** | **Security** | Supabase Auth and private RLS policies. |
+| **Phase 7** | **Web Scraping** | Smart link detection and text extraction. |
+| **Phase 8** | **Academic Upgrade** | Puppeteer-based deep scraping for science portals. |
 
-- Vite
-- React + TypeScript
-- Tailwind CSS
-- Dexie (IndexedDB) for offline/local data
+---
 
-### Data and Sync
+## 🛠️ Technical Stack
+*   **Frontend:** React 19, TypeScript, Shadcn UI, Tailwind CSS.
+*   **Local DB:** Dexie.js (IndexedDB).
+*   **Cloud DB/Auth:** Supabase.
+*   **AI Models:** Google Gemini 2.0 Flash, Llama 3.3 (via Groq).
+*   **Server:** Node.js Express Proxy (for API security and Scraping).
+*   **Testing:** Vitest.
 
-- Supabase (cloud persistence)
-- Local outbox + retry sync pattern
+---
 
-### AI Layer
+## 🏃 Getting Started
 
-- Google Gemini (cloud, free-tier friendly path)
-- Provider adapter pattern for fallback and future local model support
+### Prerequisites
+*   Node.js (v18+)
+*   Supabase Account
+*   Gemini/Groq API Keys
 
-## Core MVP Features
+### Installation
+```bash
+# Install dependencies
+npm install
 
-- Create and manage research items locally
-- Run AI-assisted research/summarization
-- Save AI outputs with run history
-- Queue writes while offline and sync when online
-- Show clear status for online/offline and pending operations
+# Setup environment variables
+cp .env.example .env.local
+# Fill in your Supabase and AI keys
+```
 
-## Repo Notes
+### Running the App
+```bash
+# Start the Proxy Server (Port 3001)
+npm run server
 
-- This repository currently stores root project setup and planning
-- The `docs/` folder is intentionally gitignored in this stage for local planning notes
-- Implementation apps/packages will be added in subsequent steps
+# Start the Web App (Vite)
+npm run dev
+```
 
-## Team Workflow (Hackathon)
+---
 
-- Build the smallest complete vertical slice first
-- Keep architecture provider-agnostic for AI and portable for mobile
-- Defer non-critical complexity (auth, advanced conflicts, heavy infra)
+## 💡 Demo Script
+1.  **Go Offline:** Create a research item to show local persistence.
+2.  **Reconnect:** Watch the "Synced" badge turn green as data hits Supabase.
+3.  **Agentic Run:** Trigger "Deep Insight" to show the multi-step AI workflow.
+4.  **Web Scraping:** Paste a Wikipedia link to see the app ingest a live webpage.
 
-## Quick Start (Planned)
+---
 
-Setup commands will be added once scaffolding starts. The expected initial flow:
-
-1. Scaffold web app with Vite + React + TypeScript
-2. Add Tailwind + Dexie + Supabase client
-3. Add Gemini provider integration through an adapter
-4. Implement offline queue and reconnect sync
-
-## Roadmap After MVP
-
-- Add Expo mobile client reusing shared domain logic
-- Introduce local model execution path for stronger offline AI capabilities
-- Add auth and collaboration features if needed
-
-## License
-
-MIT. See LICENSE.
+## 📝 License
+MIT | The Assemblers 2026

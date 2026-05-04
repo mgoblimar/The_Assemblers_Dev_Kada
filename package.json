@@ -1,0 +1,11 @@
+{
+  "name": "research-ai-monorepo",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd apps/web && npm install && cd server && npm install",
+    "dev:all": "cd apps/web && npm run dev:all",
+    "build:all": "cd apps/web && npm run build",
+    "test:all": "cd apps/web && npm test",
+    "lint:all": "cd apps/web && npm run lint"
+  }
+}

@@ -29,7 +29,28 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
     setError(null)
 
     try {
-      await createResearchItem(title, sourceText)
+      let finalTitle = title
+      let finalText = sourceText
+
+      // Detect if it's a URL
+      if (sourceText.trim().startsWith('http')) {
+        try {
+          const res = await fetch('/api/scrape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: sourceText.trim() })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            finalText = data.text
+            if (title === '') finalTitle = data.title
+          }
+        } catch (err) {
+          console.warn('Scraping failed, using URL as text', err)
+        }
+      }
+
+      await createResearchItem(finalTitle, finalText)
       setTitle('')
       setSourceText('')
       onItemCreated()
