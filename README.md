@@ -52,31 +52,41 @@ Researchers often work in environments with unstable connectivity. ResearchAI en
 
 ---
 
-## 🏃 Getting Started
+## 🏃 Quick Start for Collaborators
 
-### Prerequisites
-*   Node.js (v18+)
-*   Supabase Account
-*   Gemini/Groq API Keys
+Follow these steps exactly to get the project running on your local machine.
 
-### Installation
+### 1. Clone the Repository
 ```bash
-# Install dependencies
-npm install
-
-# Setup environment variables
-cp .env.example .env.local
-# Fill in your Supabase and AI keys
+git clone <your-repo-url>
+cd The_Assemblers_Dev_Kada
 ```
 
-### Running the App
+### 2. Install All Dependencies
+We use a unified command to install packages for the Frontend, the Backend Server, and the Root.
 ```bash
-# Start the Proxy Server (Port 3001)
-npm run server
-
-# Start the Web App (Vite)
-npm run dev
+npm run install:all
 ```
+
+### 3. Setup Environment Variables
+You must set up your keys for the AI and Sync to work.
+1.  Navigate to the web app folder: `cd apps/web`
+2.  Create a local env file: `cp .env.example .env.local`
+3.  Open `.env.local` and paste the **Supabase URL**, **Anon Key**, and **Groq/Gemini API Keys**.
+    *   *Ask the team lead for these keys if you don't have them.*
+
+### 4. Run the Development Environment
+Go back to the project root and start everything:
+```bash
+# Return to root if you are in apps/web
+cd ../.. 
+
+# Start Frontend (Port 5173) + Backend Server (Port 3001)
+npm run dev:all
+```
+
+### 5. Open the App
+Visit [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
