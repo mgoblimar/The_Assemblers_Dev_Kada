@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/sync/supabase'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 
 export function Auth() {
   const [loading, setLoading] = useState(false)
@@ -26,59 +30,68 @@ export function Auth() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          {mode === 'login' ? 'Welcome Back' : 'Create Account'}
-        </h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50 p-4">
+      <Card className="w-full max-w-md shadow-xl border-none">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-3xl font-bold tracking-tight">
+            {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+          </CardTitle>
+          <CardDescription>
+            {mode === 'login' 
+              ? 'Enter your credentials to access your research' 
+              : 'Sign up to start organizing your insights'}
+          </CardDescription>
+        </CardHeader>
 
-        {message && (
-          <div className={`mb-4 p-3 rounded-lg text-sm ${
-            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {message.text}
-          </div>
-        )}
+        <CardContent className="grid gap-4">
+          {message && (
+            <div className={`p-3 rounded-lg text-sm font-medium ${
+              message.type === 'success' ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'
+            }`}>
+              {message.text}
+            </div>
+          )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
-          </button>
-        </form>
+          <form onSubmit={handleAuth} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full h-11 text-lg">
+              {loading ? 'Processing...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+            </Button>
+          </form>
+        </CardContent>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            className="text-sm text-indigo-600 hover:underline"
-          >
-            {mode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
-          </button>
-        </div>
-      </div>
+        <CardFooter className="flex flex-col gap-4 border-t pt-6">
+          <div className="text-center text-sm text-muted-foreground">
+            {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
+            <button
+              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              className="ml-1 text-primary font-semibold hover:underline"
+            >
+              {mode === 'login' ? 'Sign Up' : 'Log In'}
+            </button>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

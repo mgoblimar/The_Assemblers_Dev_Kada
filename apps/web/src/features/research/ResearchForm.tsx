@@ -1,5 +1,11 @@
 import { useState } from 'react'
 import { createResearchItem } from '@/lib/db/research-repository'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { Textarea } from '@/shared/components/ui/textarea'
+import { Label } from '@/shared/components/ui/label'
+import { Sparkles, Plus, Database } from 'lucide-react'
 
 interface ResearchFormProps {
   onItemCreated: () => void
@@ -60,59 +66,66 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">New Research Item</h2>
-        <button 
-          type="button" 
-          onClick={handleSeed}
-          className="text-xs text-gray-400 hover:text-indigo-600 transition-colors"
-        >
-          [Seed Demo Data]
-        </button>
-      </div>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
-          {error}
+    <Card className="mb-8 border-none shadow-lg">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+            <Plus className="w-6 h-6 text-primary" />
+            New Research
+          </CardTitle>
+          <CardDescription>Capture your thoughts or paste a source</CardDescription>
         </div>
-      )}
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Title
-        </label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter research title"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleSeed}
           disabled={loading}
-        />
-      </div>
+          className="text-xs gap-1.5 font-medium"
+        >
+          <Database className="w-3.5 h-3.5" />
+          Seed Demo
+        </Button>
+      </CardHeader>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Source Text / Content
-        </label>
-        <textarea
-          value={sourceText}
-          onChange={(e) => setSourceText(e.target.value)}
-          placeholder="Paste your research content here..."
-          rows={6}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={loading}
-        />
-      </div>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm font-medium">
+              {error}
+            </div>
+          )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-      >
-        {loading ? 'Creating...' : 'Create Research Item'}
-      </button>
-    </form>
+          <div className="grid gap-2">
+            <Label htmlFor="title" className="text-sm font-semibold">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Deep Sea Mining Impact"
+              disabled={loading}
+              className="h-10 border-muted-foreground/20 focus:border-primary"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="content" className="text-sm font-semibold">Content</Label>
+            <Textarea
+              id="content"
+              value={sourceText}
+              onChange={(e) => setSourceText(e.target.value)}
+              placeholder="Start typing your research findings..."
+              rows={5}
+              disabled={loading}
+              className="resize-none border-muted-foreground/20 focus:border-primary"
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full h-11 text-base font-semibold gap-2">
+            <Sparkles className="w-5 h-5" />
+            {loading ? 'Creating...' : 'Analyze Research'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

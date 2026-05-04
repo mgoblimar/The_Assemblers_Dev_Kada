@@ -54,7 +54,14 @@ export async function runAgenticWorkflow(researchItemId: number) {
     steps[2].status = 'completed'
     const category = await callAI(buildAgenticPrompt('categorize', summary), model)
     steps[2].output = category
-    await db.aiRuns.update(runId, { steps: [...steps], status: 'completed', output: `SUMMARY:\n${summary}\n\nACTIONS:\n${actions}\n\nCATEGORY: ${category}` })
+    
+    const combinedOutput = `### 📋 Summary\n${summary}\n\n### 🚀 Action Items\n${actions}\n\n**Category:** ${category}`
+    
+    await db.aiRuns.update(runId, { 
+      steps: [...steps], 
+      status: 'completed', 
+      output: combinedOutput 
+    })
 
     // Add to outbox
     const finalRun = await db.aiRuns.get(runId)
