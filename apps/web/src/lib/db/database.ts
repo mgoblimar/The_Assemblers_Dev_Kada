@@ -2,6 +2,7 @@ import Dexie, { Table } from 'dexie'
 
 export interface ResearchItem {
   id?: number
+  userId?: string // Supabase user ID
   title: string
   sourceText: string
   createdAt: Date
@@ -11,6 +12,7 @@ export interface ResearchItem {
 
 export interface AIRun {
   id?: number
+  userId?: string // Supabase user ID
   researchItemId: number
   provider: string
   model: string
@@ -27,6 +29,7 @@ export interface AIRun {
 
 export interface OutboxEntry {
   id?: number
+  userId?: string // Supabase user ID
   entityType: 'research_item' | 'ai_run'
   entityId: number
   operation: 'create' | 'update' | 'delete'
@@ -44,10 +47,10 @@ export class ResearchDatabase extends Dexie {
 
   constructor() {
     super('ResearchDB')
-    this.version(1).stores({
-      researchItems: '++id, createdAt, syncStatus',
-      aiRuns: '++id, researchItemId, createdAt',
-      outbox: '++id, status, createdAt',
+    this.version(2).stores({
+      researchItems: '++id, userId, createdAt, syncStatus',
+      aiRuns: '++id, userId, researchItemId, createdAt',
+      outbox: '++id, userId, status, createdAt',
     })
   }
 }

@@ -3,9 +3,11 @@ import { db, ResearchItem, AIRun } from './database'
 export async function createResearchItem(
   title: string,
   sourceText: string,
+  userId?: string
 ): Promise<ResearchItem> {
   const now = new Date()
   const payload = {
+    userId,
     title,
     sourceText,
     createdAt: now,
@@ -16,6 +18,7 @@ export async function createResearchItem(
 
   // Add to outbox
   await db.outbox.add({
+    userId,
     entityType: 'research_item',
     entityId: id,
     operation: 'create',
@@ -30,7 +33,14 @@ export async function createResearchItem(
   return item
 }
 
-export async function getResearchItems(): Promise<ResearchItem[]> {
+export async function getResearchItems(userId?: string): Promise<ResearchItem[]> {
+  if (userId) {
+    return db.researchItems
+      .where('userId')
+      .equals(userId)
+      .reverse()
+      .sortBy('createdAt')
+  }
   return db.researchItems.orderBy('createdAt').reverse().toArray()
 }
 
@@ -75,19 +85,9 @@ export async function getLatestAIRunForResearchItem(
   return runs[runs.length - 1]
 }
 
-export async function getInsightRunsForResearchItem(
-  researchItemId: number,
-): Promise<{ summaryRun?: AIRun; deepRun?: AIRun }> {
-  const runs = await db.aiRuns
+export async function getAIRunsForItem(researchItemId: number): Promise<AIRun[]> {
+  return db.aiRuns
     .where('researchItemId')
     .equals(researchItemId)
     .sortBy('createdAt')
-
-  const summaryRuns = runs.filter((run) => !run.steps || run.steps.length === 0)
-  const deepRuns = runs.filter((run) => run.steps && run.steps.length > 0)
-
-  return {
-    summaryRun: summaryRuns[summaryRuns.length - 1],
-    deepRun: deepRuns[deepRuns.length - 1],
-  }
 }

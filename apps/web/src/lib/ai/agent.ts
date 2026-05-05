@@ -11,8 +11,13 @@ export async function runAgenticWorkflow(researchItemId: number) {
     : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile')
 
   const now = new Date()
+  
+  const item = await db.researchItems.get(researchItemId)
+  if (!item) throw new Error('Item not found')
+
   const runId = await db.aiRuns.add({
     researchItemId,
+    userId: item.userId,
     provider,
     model,
     prompt: 'Agentic Workflow',
@@ -27,9 +32,6 @@ export async function runAgenticWorkflow(researchItemId: number) {
   })
 
   try {
-    const item = await db.researchItems.get(researchItemId)
-    if (!item) throw new Error('Item not found')
-
     const steps: { name: string, status: 'pending' | 'completed' | 'failed', output?: string }[] = [
       { name: 'Summarize', status: 'pending' },
       { name: 'Extract Actions', status: 'pending' },
@@ -67,6 +69,7 @@ export async function runAgenticWorkflow(researchItemId: number) {
     const finalRun = await db.aiRuns.get(runId)
     if (finalRun) {
       await db.outbox.add({
+        userId: item.userId,
         entityType: 'ai_run',
         entityId: runId,
         operation: 'create',
@@ -87,6 +90,7 @@ export async function runAgenticWorkflow(researchItemId: number) {
     const finalRun = await db.aiRuns.get(runId)
     if (finalRun) {
       await db.outbox.add({
+        userId: item.userId,
         entityType: 'ai_run',
         entityId: runId,
         operation: 'create',

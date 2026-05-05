@@ -2,35 +2,42 @@ import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { AIRun, ResearchItem, db } from '@/lib/db/database'
-import { getInsightRunsForResearchItem, getResearchItems } from '@/lib/db/research-repository'
+import { getResearchItems, getAIRunsForItem } from '@/lib/db/research-repository'
 import { ResearchCard } from './ResearchCard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
-import { FileText, Loader2, X, ScrollText, Sparkles } from 'lucide-react'
+import { FileText, Loader2, Sparkles, Brain, MessageSquare, History } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog"
+import { ScrollArea } from "@/shared/components/ui/scroll-area"
 
 interface ResearchListProps {
+  userId?: string
   refreshTrigger: number
   activeRunId: number | null
   onAnalyze: (item: ResearchItem) => void
   onItemCountChange: (count: number) => void
 }
 
-export function ResearchList({ refreshTrigger, activeRunId, onAnalyze, onItemCountChange }: ResearchListProps) {
+export function ResearchList({ userId, refreshTrigger, activeRunId, onAnalyze, onItemCountChange }: ResearchListProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [aiRunCounts, setAiRunCounts] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<ResearchItem | null>(null)
-  const [selectedSummaryRun, setSelectedSummaryRun] = useState<AIRun | null>(null)
-  const [selectedDeepRun, setSelectedDeepRun] = useState<AIRun | null>(null)
+  const [aiRuns, setAiRuns] = useState<AIRun[]>([])
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'quantitative' | 'qualitative' | 'mixed'>('all')
 
   const closeDetails = () => {
     setSelectedItem(null)
-    setSelectedSummaryRun(null)
-    setSelectedDeepRun(null)
+    setAiRuns([])
   }
 
   const openDetails = async (item: ResearchItem) => {
@@ -38,9 +45,8 @@ export function ResearchList({ refreshTrigger, activeRunId, onAnalyze, onItemCou
     setSelectedItem(item)
     setDetailsLoading(true)
     try {
-      const { summaryRun, deepRun } = await getInsightRunsForResearchItem(item.id)
-      setSelectedSummaryRun(summaryRun ?? null)
-      setSelectedDeepRun(deepRun ?? null)
+      const runs = await getAIRunsForItem(item.id)
+      setAiRuns(runs)
     } catch {
       /* no-op */
     } finally {
@@ -53,7 +59,7 @@ export function ResearchList({ refreshTrigger, activeRunId, onAnalyze, onItemCou
       setLoading(true)
       setError(null)
       try {
-        const data = await getResearchItems()
+        const data = await getResearchItems(userId)
         setItems(data)
         onItemCountChange(data.length)
 
@@ -73,7 +79,7 @@ export function ResearchList({ refreshTrigger, activeRunId, onAnalyze, onItemCou
       }
     }
     load()
-  }, [refreshTrigger, onItemCountChange])
+  }, [refreshTrigger, onItemCountChange, userId])
 
   if (loading) {
     return (
@@ -149,97 +155,126 @@ export function ResearchList({ refreshTrigger, activeRunId, onAnalyze, onItemCou
       </div>
 
       {/* Detail modal */}
-      {selectedItem && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={closeDetails}
-        >
-          <Card
-            className="max-h-[90vh] w-full max-w-4xl overflow-hidden border-none shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CardHeader className="flex flex-row items-start justify-between gap-4 border-b bg-muted/30">
-              <div className="space-y-1.5">
-                <Badge variant="secondary">Full Insight View</Badge>
-                <CardTitle className="text-xl">{selectedItem.title}</CardTitle>
-                <CardDescription>
-                  Created {new Date(selectedItem.createdAt).toLocaleString()} · {selectedItem.syncStatus}
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={closeDetails}>
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
+      <Dialog open={!!selectedItem} onOpenChange={(open) => !open && closeDetails()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-6 pb-2 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="secondary" className="rounded-full">Full Insight View</Badge>
+              {selectedItem && (
+                <Badge variant={selectedItem.syncStatus === 'synced' ? 'success' : 'warning'} className="capitalize">
+                  {selectedItem.syncStatus}
+                </Badge>
+              )}
+            </div>
+            <DialogTitle className="text-2xl font-bold text-gray-900">{selectedItem?.title}</DialogTitle>
+            <DialogDescription className="text-gray-500 font-medium">
+              Created {selectedItem && new Date(selectedItem.createdAt).toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
 
-            <CardContent className="grid max-h-[calc(90vh-100px)] gap-6 overflow-y-auto p-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <section className="space-y-4">
-                <div className="rounded-xl border bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                    <ScrollText className="h-4 w-4" /> Full Source
-                  </div>
-                  <div className="whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
-                    {selectedItem.sourceText}
-                  </div>
+          <ScrollArea className="flex-1 p-6">
+            <div className="space-y-8 pb-8">
+              {/* Source Content */}
+              <section className="space-y-3">
+                <div className="flex items-center gap-2 text-gray-400 font-bold text-[10px] uppercase tracking-widest">
+                  <FileText className="w-3.5 h-3.5" />
+                  Source Text
                 </div>
-
-                <div className="rounded-xl border bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-600">
-                    <Sparkles className="h-4 w-4" /> Latest AI Insight
-                  </div>
-                  {detailsLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-                    </div>
-                  ) : selectedSummaryRun || selectedDeepRun ? (
-                    <div className="space-y-4">
-                      {([selectedSummaryRun, selectedDeepRun] as (AIRun | null)[])
-                        .filter((r): r is AIRun => r !== null)
-                        .map((run) => (
-                          <div key={run.id} className="space-y-3 rounded-xl border bg-white p-4 shadow-sm">
-                            <div className="flex flex-wrap gap-2 text-xs">
-                              <Badge variant={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'destructive' : 'warning'}>
-                                {run.status}
-                              </Badge>
-                              <Badge variant="outline">{run.provider}</Badge>
-                              <Badge variant="outline">{run.model}</Badge>
-                            </div>
-                            <div className="rounded-lg border bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 prose prose-sm max-w-none">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {run.output || 'No output yet.'}
-                              </ReactMarkdown>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No AI insight yet. Click Analyze on the card to generate one.
-                    </p>
-                  )}
+                <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
+                  {selectedItem?.sourceText}
                 </div>
               </section>
 
-              <aside className="space-y-4">
-                <div className="rounded-xl border bg-white p-4 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold text-slate-600">Metadata</h3>
-                  <dl className="space-y-3 text-sm">
-                    {([
-                      ['Status',  selectedItem.syncStatus],
-                      ['Created', new Date(selectedItem.createdAt).toLocaleString()],
-                      ['Updated', new Date(selectedItem.updatedAt).toLocaleString()],
-                    ] as [string, string][]).map(([label, value]) => (
-                      <div key={label} className="flex items-start justify-between gap-4">
-                        <dt className="text-slate-500">{label}</dt>
-                        <dd className="font-medium text-slate-800 text-right capitalize">{value}</dd>
+              {/* AI History */}
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-gray-400 font-bold text-[10px] uppercase tracking-widest">
+                  <History className="w-3.5 h-3.5" />
+                  AI Analysis History
+                </div>
+
+                {detailsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary/30" />
+                  </div>
+                ) : aiRuns.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <Sparkles className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground font-medium">No AI analysis runs yet.</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Generate a summary or deep insight to see results here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {aiRuns.map((run) => (
+                      <div key={run.id} className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm bg-white hover:shadow-md transition-shadow">
+                        <div className="bg-gray-50/80 px-5 py-3 border-b flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center",
+                              run.steps && run.steps.length > 0 ? "bg-purple-100 text-purple-600" : "bg-indigo-100 text-indigo-600"
+                            )}>
+                              {run.steps && run.steps.length > 0 ? (
+                                <Brain className="w-4 h-4" />
+                              ) : (
+                                <Sparkles className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-700">
+                                {run.steps && run.steps.length > 0 ? 'Deep Insight' : 'Quick Summary'}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Badge variant="outline" className="text-[9px] h-4 bg-white font-medium uppercase tracking-tighter">
+                                  {run.provider} • {run.model}
+                                </Badge>
+                                <Badge variant={run.status === 'completed' ? 'success' : 'destructive'} className="text-[9px] h-4 uppercase px-1.5">
+                                  {run.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {new Date(run.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        
+                        <div className="p-5 space-y-5">
+                          {/* Prompt Section */}
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                              <MessageSquare className="w-3 h-3" />
+                              Prompt Sent
+                            </div>
+                            <div className="bg-slate-900 text-slate-300 p-4 rounded-xl text-[11px] font-mono leading-relaxed max-h-40 overflow-y-auto border border-slate-800 shadow-inner">
+                              {run.prompt}
+                            </div>
+                          </div>
+
+                          {/* Output Section */}
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                              <Sparkles className="w-3 h-3" />
+                              AI Output
+                            </div>
+                            <div className="prose prose-sm max-w-none text-gray-800 bg-indigo-50/20 p-5 rounded-xl border border-indigo-100/50 leading-relaxed">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {run.output || 'No output captured.'}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
-                  </dl>
-                </div>
-              </aside>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                  </div>
+                )}
+              </section>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   )
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(' ')
 }

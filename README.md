@@ -29,16 +29,17 @@ Researchers often work in environments with unstable connectivity. ResearchAI en
 
 ## 📈 The Implementation Journey (Phases)
 
-| Phase | Milestone | Key Deliverables |
+| Phase | Feature | Description |
 | :--- | :--- | :--- |
-| **Phase 1** | **Foundation** | Vite + React + Tailwind + Dexie setup. |
+| **Phase 1** | **Foundation** | Vite + TS + Tailwind setup. |
 | **Phase 2** | **Offline CRUD** | Research input/list with local persistence. |
-| **Phase 3** | **Cloud AI** | Gemini/Groq adapters and AI Run history. |
-| **Phase 4** | **Cloud Sync** | Outbox processor and Supabase integration. |
-| **Phase 5** | **Polish & Demo** | Shadcn UI modernization and Demo seeding. |
-| **Phase 6** | **Security** | Supabase Auth and private RLS policies. |
-| **Phase 7** | **Web Scraping** | Smart link detection and text extraction. |
-| **Phase 8** | **Academic Upgrade** | Puppeteer-based deep scraping for science portals. |
+| **Phase 3** | **Cloud AI** | Gemini/Groq adapters and Agentic Workflows. |
+| **Phase 4** | **Academic Scrape**| Puppeteer-based deep scraping for science portals. |
+| **Phase 5** | **Cloud Sync** | Outbox processor and Supabase integration. |
+| **Phase 6** | **Advisor** | AI-driven methodology and gap analysis. |
+| **Phase 7** | **Citations** | Academic reference discovery and formatting. |
+| **Phase 8-13**| **Expert Suite** | Thesis outlines, bias detection, and local LLMs. |
+| **Phase 14**| **Launch & Polish**| Final hardening, testing, and professional UX. |
 
 ---
 

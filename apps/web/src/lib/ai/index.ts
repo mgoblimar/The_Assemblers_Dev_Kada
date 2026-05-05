@@ -11,10 +11,16 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
     ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
     : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'))
 
-  // create AIRun entry with pending status
   const now = new Date()
+  
+  // load the research item to get userId
+  const item = await db.researchItems.get(researchItemId)
+  if (!item) throw new Error('Research item not found')
+
+  // create AIRun entry with pending status
   const runId = await db.aiRuns.add({
     researchItemId,
+    userId: item.userId,
     provider,
     model,
     prompt: '',
@@ -24,10 +30,6 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
   })
 
   try {
-    // load the research item
-    const item = await db.researchItems.get(researchItemId)
-    if (!item) throw new Error('Research item not found')
-
     const prompt = buildResearchPrompt(item.title, item.sourceText)
 
     // update the run with prompt
@@ -43,6 +45,7 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
     const finalRun = await db.aiRuns.get(runId)
     if (finalRun) {
       await db.outbox.add({
+        userId: item.userId,
         entityType: 'ai_run',
         entityId: runId,
         operation: 'create',
@@ -62,6 +65,7 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
     const finalRun = await db.aiRuns.get(runId)
     if (finalRun) {
       await db.outbox.add({
+        userId: item.userId,
         entityType: 'ai_run',
         entityId: runId,
         operation: 'create',

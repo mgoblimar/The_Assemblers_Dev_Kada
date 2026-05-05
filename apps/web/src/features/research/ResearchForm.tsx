@@ -5,23 +5,26 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
-import { Sparkles, Plus, Database } from 'lucide-react'
+import { toast } from '@/shared/components/ui/use-toast'
+import { Sparkles, Plus, Database, Loader2 } from 'lucide-react'
 
 interface ResearchFormProps {
+  userId?: string
   onItemCreated: () => void
 }
 
-export function ResearchForm({ onItemCreated }: ResearchFormProps) {
+export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
   const [title, setTitle] = useState('')
   const [sourceText, setSourceText] = useState('')
   const [loading, setLoading] = useState(false)
+  const [scraping, setScraping] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!title.trim() || !sourceText.trim()) {
-      setError('Please fill in all fields')
+    if (!title.trim() && !sourceText.trim()) {
+      setError('Please fill in at least the content')
       return
     }
 
@@ -34,6 +37,12 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
 
       // Detect if it's a URL
       if (sourceText.trim().startsWith('http')) {
+        setScraping(true)
+        toast({
+          title: "Scraping deep content...",
+          description: "Our agent is reading the academic portal. This may take a few seconds.",
+        })
+        
         try {
           const res = await fetch('/api/scrape', {
             method: 'POST',
@@ -44,16 +53,35 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
             const data = await res.json()
             finalText = data.text
             if (title === '') finalTitle = data.title
+            toast({
+              variant: "success",
+              title: "Scrape successful",
+              description: `Extracted ${finalText.length} characters from ${finalTitle}`,
+            })
+          } else {
+            throw new Error('Scraping failed')
           }
         } catch (err) {
           console.warn('Scraping failed, using URL as text', err)
+          toast({
+            variant: "destructive",
+            title: "Scraping partially failed",
+            description: "Could not extract deep content, using URL as source.",
+          })
+        } finally {
+          setScraping(false)
         }
       }
 
-      await createResearchItem(finalTitle, finalText)
+      await createResearchItem(finalTitle || 'Untitled Research', finalText, userId)
       setTitle('')
       setSourceText('')
       onItemCreated()
+      
+      toast({
+        title: "Research item created",
+        description: "Your data is saved locally and queued for sync.",
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create research item')
     } finally {
@@ -76,9 +104,13 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
       ]
       
       for (const item of demoItems) {
-        await createResearchItem(item.title, item.text)
+        await createResearchItem(item.title, item.text, userId)
       }
       onItemCreated()
+      toast({
+        title: "Demo data seeded",
+        description: "Added sample research items to your dashboard.",
+      })
     } catch (err) {
       setError('Failed to seed data')
     } finally {
@@ -94,7 +126,7 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
             <Plus className="w-6 h-6 text-primary" />
             New Research
           </CardTitle>
-          <CardDescription>Capture your thoughts or paste a source</CardDescription>
+          <CardDescription>Capture your thoughts or paste a source URL</CardDescription>
         </div>
         <Button 
           variant="outline" 
@@ -117,33 +149,47 @@ export function ResearchForm({ onItemCreated }: ResearchFormProps) {
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="title" className="text-sm font-semibold">Title</Label>
+            <Label htmlFor="title" className="text-sm font-semibold text-gray-700">Title (Optional)</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Deep Sea Mining Impact"
               disabled={loading}
-              className="h-10 border-muted-foreground/20 focus:border-primary"
+              className="h-10 border-gray-200 focus:border-primary focus:ring-primary/20"
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="content" className="text-sm font-semibold">Content</Label>
+            <Label htmlFor="content" className="text-sm font-semibold text-gray-700">Content or URL</Label>
             <Textarea
               id="content"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              placeholder="Start typing your research findings..."
+              placeholder="Paste a URL (e.g. Nature, ScienceDirect) or type your notes here..."
               rows={5}
               disabled={loading}
-              className="resize-none border-muted-foreground/20 focus:border-primary"
+              className="resize-none border-gray-200 focus:border-primary focus:ring-primary/20"
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full h-11 text-base font-semibold gap-2">
-            <Sparkles className="w-5 h-5" />
-            {loading ? 'Creating...' : 'Analyze Research'}
+          <Button type="submit" disabled={loading} className="w-full h-11 text-base font-semibold gap-2 shadow-sm transition-all hover:translate-y-[-1px]">
+            {scraping ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Reading Portal...
+              </>
+            ) : loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Analyze Research
+              </>
+            )}
           </Button>
         </form>
       </CardContent>

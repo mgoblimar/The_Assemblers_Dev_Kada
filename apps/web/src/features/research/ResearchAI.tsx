@@ -3,8 +3,9 @@ import { runAIForResearchItem } from '@/lib/ai'
 import { runAgenticWorkflow } from '@/lib/ai/agent'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
-import { Brain, Zap, Loader2, Bot, Sparkles } from 'lucide-react'
+import { Brain, Zap, Loader2, Bot, Sparkles, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { toast } from '@/shared/components/ui/use-toast'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -25,27 +26,45 @@ export function ResearchAI({ researchItemId }: Props) {
     setError(null)
     setOutput(null)
     setType(mode)
+    
+    toast({
+      title: mode === 'agent' ? "Starting deep analysis..." : "Generating summary...",
+      description: mode === 'agent' ? "This may take 15-30 seconds as our agent performs multiple steps." : "Reading your source text...",
+    })
+
     try {
       const res = mode === 'summary' 
         ? await runAIForResearchItem(researchItemId)
         : await runAgenticWorkflow(researchItemId)
       setOutput(res.output)
+      
+      toast({
+        variant: "success",
+        title: "Analysis complete",
+        description: `Successfully generated ${mode === 'agent' ? 'agentic insight' : 'quick summary'}.`,
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg)
+      toast({
+        variant: "destructive",
+        title: "AI Analysis failed",
+        description: msg,
+      })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={() => handleRun('summary')}
           disabled={loading}
           variant="secondary"
           size="sm"
-          className="gap-2 font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-none shadow-none"
+          className="gap-2 font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-none shadow-none transition-all active:scale-95"
         >
           {loading && type === 'summary' ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -59,7 +78,7 @@ export function ResearchAI({ researchItemId }: Props) {
           disabled={loading}
           variant="secondary"
           size="sm"
-          className="gap-2 font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border-none shadow-none"
+          className="gap-2 font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border-none shadow-none transition-all active:scale-95"
         >
           {loading && type === 'agent' ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -71,13 +90,13 @@ export function ResearchAI({ researchItemId }: Props) {
       </div>
 
       {error && (
-        <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-xs font-medium border border-destructive/20">
+        <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-xs font-medium border border-destructive/20 animate-in shake-2">
           AI Error: {error}
         </div>
       )}
 
       {output && (
-        <Card className="bg-indigo-50/30 border-none shadow-none">
+        <Card className="bg-indigo-50/30 border-none shadow-none overflow-hidden group">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -90,9 +109,12 @@ export function ResearchAI({ researchItemId }: Props) {
                   {type === 'agent' ? 'Agent Output' : 'Summary Result'}
                 </span>
               </div>
-              <Badge variant="outline" className="text-[10px] bg-white border-gray-200">
-                AI Generated
-              </Badge>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-3 h-3 text-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Badge variant="outline" className="text-[10px] bg-white border-gray-200 shadow-sm">
+                  AI Generated
+                </Badge>
+              </div>
             </div>
             <div className="text-sm leading-relaxed text-gray-800 prose prose-sm max-w-none prose-p:leading-relaxed prose-headings:mb-2 prose-headings:mt-4 first:prose-headings:mt-0">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>

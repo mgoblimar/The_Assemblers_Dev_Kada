@@ -1,5 +1,12 @@
-# Local planning docs
+# Local planning docs (do NOT track)
 docs/
+
+# Main documentation files (DO track these!)
+!PROGRESS.md
+!ARCHITECTURE.md
+!FEATURES.md
+!HANDOFF.md
+!DECISIONS.md
 
 # Logs
 logs
