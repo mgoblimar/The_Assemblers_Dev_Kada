@@ -31,3 +31,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+.claude/memory/
+.claude/todos/
+.mcp.json

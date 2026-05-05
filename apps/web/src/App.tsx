@@ -1,202 +1,289 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 import { ResearchForm } from '@/features/research/ResearchForm'
 import { ResearchList } from '@/features/research/ResearchList'
+import { Sidebar, type ActiveView } from '@/features/layout/Sidebar'
+import { AIWorkflowPanel } from '@/features/layout/AIWorkflowPanel'
+import { StatusBar } from '@/features/layout/StatusBar'
+import { Auth } from '@/features/auth/Auth'
 import { processOutbox } from '@/lib/sync/outbox-processor'
 import { supabase } from '@/lib/sync/supabase'
-import { Auth } from '@/features/auth/Auth'
+import { runAgenticWorkflow } from '@/lib/ai/agent'
+import { db } from '@/lib/db/database'
+import type { AIRun, ResearchItem } from '@/lib/db/database'
 import { Session } from '@supabase/supabase-js'
 import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
 import { Badge } from '@/shared/components/ui/badge'
-import { 
-  LogOut, 
-  RotateCw, 
-  Trash2, 
-  Cloud, 
-  CloudOff, 
-  Loader2,
-  BrainCircuit
-} from 'lucide-react'
+import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PenLine, Lightbulb, Construction } from 'lucide-react'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSynced, setLastSynced] = useState('not synced')
+  const [activeView, setActiveView] = useState<ActiveView>('dashboard')
+  const [showForm, setShowForm] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeRunId, setActiveRunId] = useState<number | null>(null)
+  const [activeRunTitle, setActiveRunTitle] = useState<string | null>(null)
+  const [itemCount, setItemCount] = useState(0)
+  const [outboxCount, setOutboxCount] = useState(0)
 
-  // 1. Auth Listener
+  // Auth
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => subscription.unsubscribe()
   }, [])
 
-  // 2. Online/Offline Listeners
+  // Online/offline
   useEffect(() => {
-    const handleOnline = () => setOnline(true)
-    const handleOffline = () => setOnline(false)
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
+    const on  = () => setOnline(true)
+    const off = () => setOnline(false)
+    window.addEventListener('online',  on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
-  // 3. Sync Trigger
+  // Auto-sync when online
   useEffect(() => {
-    if (session && online) {
-      triggerSync()
-    }
+    if (session && online) triggerSync()
   }, [session?.user?.id, online])
+
+  // Outbox count
+  useEffect(() => {
+    db.outbox.where('status').equals('pending').count().then(setOutboxCount)
+  }, [refreshTrigger])
 
   const triggerSync = async (force = false) => {
     if (isSyncing || !session) return
     setIsSyncing(true)
     try {
       await processOutbox(force)
-      setRefreshTrigger(prev => prev + 1)
-    } catch (err) {
-      console.error('Sync failed:', err)
+      setRefreshTrigger(p => p + 1)
+      setLastSynced(`synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
+    } catch {
+      /* no-op */
     } finally {
       setIsSyncing(false)
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleAnalyze = async (item: ResearchItem) => {
+    if (!item.id) return
+    setActiveRunTitle(item.title)
+    setActiveRunId(null)
+    try {
+      const { runId } = await runAgenticWorkflow(item.id)
+      setActiveRunId(runId)
+      setRefreshTrigger(p => p + 1)
+    } catch {
+      setActiveRunTitle(null)
+    }
+  }
+
+  const handleViewReport = (_run: AIRun) => {
+    setRefreshTrigger(p => p + 1)
+  }
+
+  const handleItemCreated = () => {
+    setRefreshTrigger(p => p + 1)
+    setShowForm(false)
+    if (online && session) triggerSync()
   }
 
   const handleReset = async () => {
-    if (!confirm('Are you sure you want to clear all local and remote data for this demo?')) return
-    
+    if (!confirm('Clear all local and remote data for this demo?')) return
     setIsSyncing(true)
     try {
       if (session) {
         await supabase.from('ai_runs').delete().eq('user_id', session.user.id)
         await supabase.from('research_items').delete().eq('user_id', session.user.id)
       }
-      
-      const { db } = await import('@/lib/db/database')
       await db.researchItems.clear()
       await db.aiRuns.clear()
       await db.outbox.clear()
-      
-      setRefreshTrigger(prev => prev + 1)
-    } catch (err) {
-      console.error('Reset failed:', err)
+      setRefreshTrigger(p => p + 1)
+      setActiveRunId(null)
+      setActiveRunTitle(null)
     } finally {
       setIsSyncing(false)
     }
   }
 
-  const handleItemCreated = () => {
-    setRefreshTrigger((prev) => prev + 1)
-    if (online && session) triggerSync()
-  }
+  const handleItemCountChange = useCallback((count: number) => {
+    setItemCount(count)
+  }, [])
 
-  if (!session) {
-    return <Auth />
-  }
+  if (!session) return <Auth />
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
-        <div className="mx-auto max-w-5xl px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-primary rounded-lg p-1.5 shadow-lg shadow-primary/20">
-              <BrainCircuit className="w-6 h-6 text-white" />
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* 3-column body */}
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar — hidden on mobile */}
+        <div className="hidden md:flex">
+          <Sidebar
+            email={session.user.email ?? ''}
+            online={online}
+            isSyncing={isSyncing}
+            lastSynced={lastSynced}
+            activeView={activeView}
+            onViewChange={setActiveView}
+            onLogout={() => supabase.auth.signOut()}
+            onSync={() => triggerSync(true)}
+          />
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Top bar */}
+          <div className="h-14 border-b flex items-center gap-3 px-4 shrink-0 bg-background/80 backdrop-blur-md">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                className="pl-8 h-8 text-sm bg-muted/40 border-0 focus-visible:ring-1"
+                placeholder="Search your research…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
             </div>
-            <span className="text-xl font-extrabold tracking-tight">Research<span className="text-primary">AI</span></span>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-muted-foreground hover:text-destructive"
+              onClick={handleReset}
+              title="Reset demo data"
+              disabled={isSyncing}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs font-semibold"
+              onClick={() => { setActiveView('dashboard'); setShowForm(v => !v) }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New Research
+            </Button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-xs font-bold text-slate-500 truncate max-w-[150px]">{session.user.email}</span>
-              <Badge variant={online ? "success" : "warning"} className="h-5 gap-1 text-[10px] uppercase tracking-wider font-bold">
-                {online ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
-                {online ? 'Cloud Active' : 'Offline Mode'}
-              </Badge>
-            </div>
-            
-            <div className="h-8 w-[1px] bg-slate-200 hidden md:block" />
-
-            <div className="flex items-center gap-1.5">
-              {online && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => triggerSync(true)}
-                  disabled={isSyncing}
-                  className="rounded-full hover:bg-slate-100"
-                  title="Force Sync"
-                >
-                  {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4" />}
-                </Button>
-              )}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleReset}
-                disabled={isSyncing}
-                className="rounded-full hover:bg-red-50 text-slate-400 hover:text-red-600"
-                title="Reset Data"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleLogout}
-                className="rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-900"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            <MainContent
+              activeView={activeView}
+              showForm={showForm}
+              onItemCreated={handleItemCreated}
+              refreshTrigger={refreshTrigger}
+              activeRunId={activeRunId}
+              onAnalyze={handleAnalyze}
+              onItemCountChange={handleItemCountChange}
+              itemCount={itemCount}
+            />
           </div>
         </div>
-      </nav>
 
-      <main className="mx-auto max-w-2xl px-4 py-12 space-y-12">
-        {/* Welcome Section */}
-        <section className="space-y-2">
-          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-            Welcome back, {session.user.email?.split('@')[0]}
-          </h2>
-          <p className="text-lg text-slate-500 font-medium">
-            What are we researching today?
-          </p>
-        </section>
+        {/* AI panel — hidden on mobile */}
+        <div className="hidden lg:flex">
+          <AIWorkflowPanel
+            runId={activeRunId}
+            itemTitle={activeRunTitle}
+            onCancel={() => { setActiveRunId(null); setActiveRunTitle(null) }}
+            onViewReport={handleViewReport}
+          />
+        </div>
+      </div>
 
-        {/* Action Section */}
-        <section>
-          <ResearchForm onItemCreated={handleItemCreated} />
-        </section>
+      {/* Status bar */}
+      <StatusBar itemCount={itemCount} online={online} outboxCount={outboxCount} />
+    </div>
+  )
+}
 
-        {/* Content Section */}
-        <section className="pb-20">
-          <ResearchList refreshTrigger={refreshTrigger} />
-        </section>
-      </main>
-      
-      {/* Mobile Status Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 p-2 bg-white/80 backdrop-blur-md border-t flex justify-center">
-        <Badge variant={online ? "success" : "warning"} className="gap-1.5 px-4 py-1">
-          {online ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
-          {online ? 'Online' : 'Offline'}
-        </Badge>
+interface MainContentProps {
+  activeView: ActiveView
+  showForm: boolean
+  onItemCreated: () => void
+  refreshTrigger: number
+  activeRunId: number | null
+  onAnalyze: (item: ResearchItem) => void
+  onItemCountChange: (count: number) => void
+  itemCount: number
+}
+
+function MainContent({ activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onItemCountChange, itemCount }: MainContentProps) {
+  if (activeView === 'advisor')   return <ComingSoon icon={BarChart3}  title="Analysis Advisor"  phase="9"  desc="Recommends statistical and qualitative analysis methods for your research." />
+  if (activeView === 'citations') return <ComingSoon icon={Bookmark}   title="Citation Engine"   phase="10" desc="Finds and formats academic references from Semantic Scholar and CrossRef." />
+  if (activeView === 'improve')   return <ComingSoon icon={PenLine}    title="Improve Writing"   phase="11" desc="Per-section coherence scoring, gap detection, and rewrite suggestions." />
+  if (activeView === 'topics')    return <ComingSoon icon={Lightbulb}  title="Topic Builder"     phase="12" desc="Generates scored topic trees and full research chapter outlines." />
+
+  return (
+    <div className="px-5 py-5 space-y-5 max-w-2xl mx-auto w-full">
+      {/* Welcome */}
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {itemCount} item{itemCount !== 1 ? 's' : ''} in your local database
+        </p>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Research Items" value={itemCount} icon={Database} />
+        <StatCard label="AI Runs" value="—" icon={BarChart3} />
+        <StatCard label="Citations" value="—" icon={Bookmark} phase="10" />
+      </div>
+
+      {/* Form toggle */}
+      {showForm && (
+        <div className="rounded-xl border shadow-sm overflow-hidden">
+          <ResearchForm onItemCreated={onItemCreated} />
+        </div>
+      )}
+
+      {/* List */}
+      <ResearchList
+        refreshTrigger={refreshTrigger}
+        activeRunId={activeRunId}
+        onAnalyze={onAnalyze}
+        onItemCountChange={onItemCountChange}
+      />
+    </div>
+  )
+}
+
+function StatCard({ label, value, icon: Icon, phase }: { label: string; value: string | number; icon: React.ElementType; phase?: string }) {
+  return (
+    <div className="rounded-xl border bg-card p-3 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+        {phase && <Badge variant="secondary" className="text-[9px] h-4 px-1.5">P{phase}</Badge>}
+      </div>
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-xs text-muted-foreground font-medium">{label}</p>
+    </div>
+  )
+}
+
+function ComingSoon({ icon: Icon, title, phase, desc }: { icon: React.ElementType; title: string; phase: string; desc: string }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 py-20 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center">
+        <Icon className="w-6 h-6 text-primary/50" />
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center justify-center gap-2">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <Badge variant="secondary" className="text-xs">Phase {phase}</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">{desc}</p>
+      </div>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 font-medium">
+        <Construction className="w-3.5 h-3.5" />
+        Coming soon
       </div>
     </div>
   )
