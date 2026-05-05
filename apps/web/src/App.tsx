@@ -6,7 +6,7 @@ import { Sidebar, type ActiveView } from '@/features/layout/Sidebar'
 import { AIWorkflowPanel } from '@/features/layout/AIWorkflowPanel'
 import { StatusBar } from '@/features/layout/StatusBar'
 import { Auth } from '@/features/auth/Auth'
-import { processOutbox } from '@/lib/sync/outbox-processor'
+import { processOutbox, fetchRemoteData } from '@/lib/sync/outbox-processor'
 import { supabase } from '@/lib/sync/supabase'
 import { runAgenticWorkflow } from '@/lib/ai/agent'
 import { db } from '@/lib/db/database'
@@ -15,6 +15,8 @@ import { Session } from '@supabase/supabase-js'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Badge } from '@/shared/components/ui/badge'
+import { Toaster } from '@/shared/components/ui/toaster'
+import { AnalysisAdvisor } from '@/features/advisor/AnalysisAdvisor'
 import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PenLine, Lightbulb, Construction } from 'lucide-react'
 
 function App() {
@@ -33,8 +35,14 @@ function App() {
 
   // Auth
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      if (session) fetchRemoteData(session.user.id).then(() => setRefreshTrigger(p => p + 1))
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s)
+      if (s) fetchRemoteData(s.user.id).then(() => setRefreshTrigger(p => p + 1))
+    })
     return () => subscription.unsubscribe()
   }, [])
 
@@ -174,12 +182,14 @@ function App() {
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto">
             <MainContent
+              userId={session.user.id}
               activeView={activeView}
               showForm={showForm}
               onItemCreated={handleItemCreated}
               refreshTrigger={refreshTrigger}
               activeRunId={activeRunId}
               onAnalyze={handleAnalyze}
+              onRunStart={(runId, title) => { setActiveRunId(runId); setActiveRunTitle(title) }}
               onItemCountChange={handleItemCountChange}
               itemCount={itemCount}
             />
@@ -199,23 +209,28 @@ function App() {
 
       {/* Status bar */}
       <StatusBar itemCount={itemCount} online={online} outboxCount={outboxCount} />
+      
+      {/* Toasts */}
+      <Toaster />
     </div>
   )
 }
 
 interface MainContentProps {
+  userId: string
   activeView: ActiveView
   showForm: boolean
   onItemCreated: () => void
   refreshTrigger: number
   activeRunId: number | null
   onAnalyze: (item: ResearchItem) => void
+  onRunStart: (runId: number, title: string) => void
   onItemCountChange: (count: number) => void
   itemCount: number
 }
 
-function MainContent({ activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onItemCountChange, itemCount }: MainContentProps) {
-  if (activeView === 'advisor')   return <ComingSoon icon={BarChart3}  title="Analysis Advisor"  phase="9"  desc="Recommends statistical and qualitative analysis methods for your research." />
+function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onRunStart, onItemCountChange, itemCount }: MainContentProps) {
+  if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} />
   if (activeView === 'citations') return <ComingSoon icon={Bookmark}   title="Citation Engine"   phase="10" desc="Finds and formats academic references from Semantic Scholar and CrossRef." />
   if (activeView === 'improve')   return <ComingSoon icon={PenLine}    title="Improve Writing"   phase="11" desc="Per-section coherence scoring, gap detection, and rewrite suggestions." />
   if (activeView === 'topics')    return <ComingSoon icon={Lightbulb}  title="Topic Builder"     phase="12" desc="Generates scored topic trees and full research chapter outlines." />
@@ -240,12 +255,13 @@ function MainContent({ activeView, showForm, onItemCreated, refreshTrigger, acti
       {/* Form toggle */}
       {showForm && (
         <div className="rounded-xl border shadow-sm overflow-hidden">
-          <ResearchForm onItemCreated={onItemCreated} />
+          <ResearchForm userId={userId} onItemCreated={onItemCreated} />
         </div>
       )}
 
       {/* List */}
       <ResearchList
+        userId={userId}
         refreshTrigger={refreshTrigger}
         activeRunId={activeRunId}
         onAnalyze={onAnalyze}

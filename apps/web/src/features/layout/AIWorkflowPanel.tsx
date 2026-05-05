@@ -12,15 +12,9 @@ interface AIWorkflowPanelProps {
   onViewReport: (run: AIRun) => void
 }
 
-const PIPELINE_STEPS = [
-  'Summarize',
-  'Extract Actions',
-  'Categorize',
-  'Citation Search',
-  'Generate Outline',
-]
+const DEFAULT_PREVIEW_STEPS = ['Summarize', 'Extract Actions', 'Categorize']
 
-type StepState = 'done' | 'progress' | 'pending' | 'failed' | 'future'
+type StepState = 'done' | 'progress' | 'pending' | 'failed'
 
 export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AIWorkflowPanelProps) {
   const [run, setRun] = useState<AIRun | null>(null)
@@ -58,7 +52,7 @@ export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AI
             Click <span className="font-semibold text-foreground">Analyze</span> on a research item to run the AI pipeline
           </p>
           <div className="w-full mt-2 space-y-2">
-            {PIPELINE_STEPS.map((s, i) => (
+            {DEFAULT_PREVIEW_STEPS.map((s, i) => (
               <div key={s} className="flex items-center gap-2.5 opacity-30">
                 <span className="w-5 h-5 rounded-full border border-muted-foreground/40 flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
                   {i + 1}
@@ -74,14 +68,14 @@ export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AI
 
   const runSteps = run.steps ?? []
   const completedCount = runSteps.filter(s => s.status === 'completed').length
-  const progress = Math.round((completedCount / PIPELINE_STEPS.length) * 100)
+  const progress = runSteps.length > 0 ? Math.round((completedCount / runSteps.length) * 100) : 0
   const isDone = run.status === 'completed'
   const isFailed = run.status === 'failed'
   const isRunning = run.status === 'pending'
 
   const getStepState = (i: number): StepState => {
     const dbStep = runSteps[i]
-    if (!dbStep) return 'future'
+    if (!dbStep) return 'pending'
     if (dbStep.status === 'completed') return 'done'
     if (dbStep.status === 'failed') return 'failed'
     if (isRunning) return 'progress'
@@ -104,11 +98,10 @@ export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AI
       <div className="flex-1 px-4 py-4 overflow-y-auto">
         <div className="relative flex flex-col gap-4">
           <div className="absolute left-[9px] top-5 bottom-5 w-px bg-border" />
-          {PIPELINE_STEPS.map((stepName, i) => {
+          {runSteps.map((dbStep, i) => {
             const state = getStepState(i)
-            const dbStep = runSteps[i]
             return (
-              <div key={stepName} className="flex items-start gap-3 relative z-10">
+              <div key={i} className="flex items-start gap-3 relative z-10">
                 <StepIcon state={state} />
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className={cn(
@@ -118,7 +111,7 @@ export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AI
                     state === 'failed'   ? 'text-destructive' :
                                           'text-muted-foreground'
                   )}>
-                    {stepName}
+                    {dbStep.name}
                   </p>
                   {state === 'done' && dbStep?.output && (
                     <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
@@ -127,11 +120,6 @@ export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AI
                   )}
                   {state === 'progress' && (
                     <p className="text-[11px] text-primary mt-0.5">Running…</p>
-                  )}
-                  {state === 'future' && (
-                    <p className="text-[10px] text-muted-foreground/50 mt-0.5 uppercase tracking-wide font-medium">
-                      Phase {i >= 3 ? (i === 3 ? '10' : '12') : '—'} · Coming soon
-                    </p>
                   )}
                 </div>
               </div>
