@@ -17,6 +17,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Badge } from '@/shared/components/ui/badge'
 import { Toaster } from '@/shared/components/ui/toaster'
 import { AnalysisAdvisor } from '@/features/advisor/AnalysisAdvisor'
+import { CitationEngine } from '@/features/citations/CitationEngine'
 import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PenLine, Lightbulb, Construction } from 'lucide-react'
 
 function App() {
@@ -231,7 +232,7 @@ interface MainContentProps {
 
 function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onRunStart, onItemCountChange, itemCount }: MainContentProps) {
   if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} />
-  if (activeView === 'citations') return <ComingSoon icon={Bookmark}   title="Citation Engine"   phase="10" desc="Finds and formats academic references from Semantic Scholar and CrossRef." />
+  if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} />
   if (activeView === 'improve')   return <ComingSoon icon={PenLine}    title="Improve Writing"   phase="11" desc="Per-section coherence scoring, gap detection, and rewrite suggestions." />
   if (activeView === 'topics')    return <ComingSoon icon={Lightbulb}  title="Topic Builder"     phase="12" desc="Generates scored topic trees and full research chapter outlines." />
 

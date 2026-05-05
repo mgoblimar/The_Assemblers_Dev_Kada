@@ -30,6 +30,17 @@ Provide exactly 5 numbered steps. Each step should be 1–2 sentences. Cover: da
   }
 }
 
+export function buildCitationPrompt(text: string): string {
+  return `Extract 5-8 specific academic search terms from the following research text. These will be used to search Semantic Scholar and CrossRef for relevant papers.
+
+Return ONLY a JSON array of strings — no explanation, no markdown, no code fences. Each term should be a specific concept, methodology, or topic (2-4 words preferred).
+
+Example output: ["machine learning", "neural networks", "image classification"]
+
+Research text:
+${text.slice(0, 800)}`
+}
+
 export function buildResearchPrompt(title: string, content: string) {
   if (!title || !content) return ''
   return `Act as a senior research analyst. Provide a professional, high-signal summary of the research titled "${title}". 
