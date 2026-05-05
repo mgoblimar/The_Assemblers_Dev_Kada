@@ -41,6 +41,104 @@ Research text:
 ${text.slice(0, 800)}`
 }
 
+export function buildImprovementPrompt(
+  step: 'segment' | 'audit' | 'rewrite',
+  input: string,
+  context?: string
+): string {
+  switch (step) {
+    case 'segment':
+      return `You are a research writing expert. Analyze this text and return ONLY a valid JSON object — no markdown, no code fences.
+
+{
+  "sectionType": "introduction" | "literature_review" | "methodology" | "results" | "discussion" | "conclusion" | "abstract" | "general",
+  "paragraphs": ["paragraph 1 text (up to 300 chars)", "paragraph 2 text", ...]
+}
+
+Split into 2–6 logical paragraphs. If the text is short, keep as 1–2 paragraphs. Truncate each to 300 characters in the output.
+
+Text:
+${input.slice(0, 2000)}`
+
+    case 'audit':
+      return `You are a research writing expert. Analyze these research paragraphs and return ONLY a valid JSON object — no markdown, no code fences.
+
+{
+  "overallScore": <number 0–10>,
+  "coherenceSummary": "<2-sentence summary of overall writing quality>",
+  "paragraphFeedback": [
+    { "coherenceScore": <0–10>, "issues": ["issue 1", "issue 2"], "suggestion": "<1-sentence improvement>" }
+  ],
+  "argumentIssues": ["global issue 1", "global issue 2", "global issue 3"],
+  "gaps": ["missing element 1", "missing element 2"]
+}
+
+Section type: ${context ?? 'general'}
+Paragraphs:
+${input}`
+
+    case 'rewrite':
+      return `You are a research writing expert. Rewrite the following weak paragraph to be clearer, more coherent, and better argued. Return ONLY a JSON object — no markdown, no code fences.
+
+{
+  "improved": "<the rewritten paragraph — same length or shorter, same voice>"
+}
+
+Original paragraph:
+${input}`
+
+    default:
+      return ''
+  }
+}
+
+export function buildTopicPrompt(seed: string): string {
+  return `You are a research planning expert. Generate exactly 5 distinct research topics based on this seed and return ONLY a valid JSON array — no markdown, no code fences.
+
+[
+  {
+    "id": "topic-1",
+    "title": "<specific, publishable research topic title>",
+    "subtopics": ["subtopic 1", "subtopic 2", "subtopic 3"],
+    "researchQuestions": ["RQ1 as a question?", "RQ2 as a question?"],
+    "hypothesis": "<one testable hypothesis statement>",
+    "noveltyScore": <1–10, 10=very understudied>,
+    "feasibilityScore": <1–10, 10=easily achievable in 6 months>,
+    "noveltyReason": "<1 sentence>",
+    "feasibilityReason": "<1 sentence>"
+  }
+]
+
+Seed: ${seed}
+
+Make the 5 topics meaningfully different — vary the angle, method, and scope.`
+}
+
+export function buildOutlinePrompt(
+  title: string,
+  questions: string[],
+  hypothesis: string,
+  subtopics: string[]
+): string {
+  return `You are a research planning expert. Generate a complete 7-chapter research outline and return ONLY a valid JSON array — no markdown, no code fences.
+
+[
+  {
+    "chapter": "Abstract",
+    "purpose": "<1-sentence purpose>",
+    "keyPoints": ["point 1", "point 2", "point 3"],
+    "suggestedLength": "150–250 words"
+  }
+]
+
+Include all 7 chapters in order: Abstract, Introduction, Literature Review, Methodology, Results, Discussion, Conclusion.
+
+Topic: ${title}
+Research questions: ${questions.join(' | ')}
+Hypothesis: ${hypothesis}
+Subtopics to address: ${subtopics.join(', ')}`
+}
+
 export function buildResearchPrompt(title: string, content: string) {
   if (!title || !content) return ''
   return `Act as a senior research analyst. Provide a professional, high-signal summary of the research titled "${title}". 

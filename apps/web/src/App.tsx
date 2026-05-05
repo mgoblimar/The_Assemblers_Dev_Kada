@@ -18,7 +18,9 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Toaster } from '@/shared/components/ui/toaster'
 import { AnalysisAdvisor } from '@/features/advisor/AnalysisAdvisor'
 import { CitationEngine } from '@/features/citations/CitationEngine'
-import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PenLine, Lightbulb, Construction } from 'lucide-react'
+import { ImprovementAnalyzer } from '@/features/improve/ImprovementAnalyzer'
+import { TopicBuilder } from '@/features/topics/TopicBuilder'
+import { Search, Plus, Database, Trash2, BarChart3, Bookmark, Construction } from 'lucide-react'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -233,8 +235,8 @@ interface MainContentProps {
 function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onRunStart, onItemCountChange, itemCount }: MainContentProps) {
   if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} />
   if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} />
-  if (activeView === 'improve')   return <ComingSoon icon={PenLine}    title="Improve Writing"   phase="11" desc="Per-section coherence scoring, gap detection, and rewrite suggestions." />
-  if (activeView === 'topics')    return <ComingSoon icon={Lightbulb}  title="Topic Builder"     phase="12" desc="Generates scored topic trees and full research chapter outlines." />
+  if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} />
+  if (activeView === 'topics')    return <TopicBuilder onRunStart={onRunStart} />
 
   return (
     <div className="px-5 py-5 space-y-5 max-w-2xl mx-auto w-full">
