@@ -1,12 +1,14 @@
 # Features & Requirements
 
 **Project:** Research Tool with AI & Agentic Workflows  
-**Feature Version:** 1.0  
-**Date:** May 5, 2026
+**Feature Version:** 2.0  
+**Date:** May 6, 2026
 
 ## Overview
 
-A research tool that is **AI and agentic powered**, works **offline-first** (via local cache and free AI APIs), and helps researchers analyze, improve, and synthesize research findings.
+A research tool that is **AI and agentic powered**, works **offline-first** (via local IndexedDB and free AI APIs), and helps researchers analyze, improve, synthesize, and cite research findings. Phases 1–12 are complete.
+
+---
 
 ## Core Features
 
@@ -14,19 +16,15 @@ A research tool that is **AI and agentic powered**, works **offline-first** (via
 **Status:** Implemented (Phase 2)  
 **Description:** Create and store research items locally
 
-- User enters research source text (any text: article excerpt, notes, paper abstract, etc.)
-- Text is immediately persisted to local IndexedDB (Dexie)
-- Research items displayed in a table with:
-  - Source text preview
-  - Creation timestamp
-  - Action buttons (View Details, Generate Summary, Generate Insight, Delete)
-- Works completely offline
-- No internet required to save research items
+- User enters a title and source text (article excerpt, notes, abstract, etc.)
+- Text immediately persisted to local IndexedDB (Dexie)
+- Research items displayed in a card list with action buttons
+- Works completely offline; no internet required to save items
 
 **Technical:**
-- Uses `ResearchForm.tsx` component
+- `ResearchForm.tsx` — form component
+- `ResearchList.tsx` — card list + per-item actions
 - Stores to `researchItems` table in Dexie
-- Validation: non-empty text, max 5000 characters
 
 ---
 
@@ -34,294 +32,310 @@ A research tool that is **AI and agentic powered**, works **offline-first** (via
 **Status:** Implemented (Phase 3)  
 **Description:** Single-step AI summary of research text
 
-- Click "Generate Summary" button on any research item
-- Groq API (llama-3.3-70b-versatile) receives full source text
-- Returns a concise 150-300 word summary
-- Result persists to `aiRuns` table with `type='summary'`
-- Summary displayed in collapsible card under source text
-- Fallback: Mock summary if API unavailable
+- Click "Analyze" on any research item to trigger the agentic workflow
+- Groq (llama-3.3-70b-versatile) generates a structured summary
+- Result persists to `aiRuns` table
 
 **Technical:**
-- Provider: Groq (free tier, no billing required)
-- Model: llama-3.3-70b-versatile (configurable)
-- Temperature: 0.7 (balanced creativity)
-- Max tokens: 2000
-- Endpoint: `http://localhost:3001/api/groq`
-
-**User Flow:**
-```
-1. User clicks "Generate Summary"
-2. Shows loading indicator
-3. API call to Groq (via Express proxy)
-4. Result displayed in 3-5 seconds
-5. Persisted locally for offline access
-```
+- Provider: Groq via Express proxy at `localhost:3001/api/groq`
+- Stored as `aiRun` with `prompt='Summarize'`
 
 ---
 
-### ✅ Feature 3: Deep Insight Generation (Agentic)
-**Status:** Implemented (Phase 3, outputs hidden)  
+### ✅ Feature 3: Deep Insight Agentic Workflow
+**Status:** Implemented (Phase 3)  
 **Description:** Multi-step agentic workflow for comprehensive analysis
 
-- Click "Generate Deep Insight" button on any research item
-- Agentic workflow executes 4 steps:
-  1. **Analyze Themes:** Extract key topics/themes from source
-  2. **Generate Questions:** Create 3-5 research questions
-  3. **Find Connections:** Link to related concepts
-  4. **Synthesize Insights:** Provide actionable recommendations
-- Each step calls Groq API
-- Final output is **1000-2000 word structured analysis**
-- Result persists to `aiRuns` table with `type='deep_insight'`
-- **Currently:** Only final output shown (no prompts, no intermediate steps per user request)
+- 4-step pipeline: Analyze Themes → Generate Questions → Find Connections → Synthesize
+- Each step is a separate Groq call; all steps tracked in `aiRun.steps[]`
+- Live step tracking visible in the AIWorkflowPanel (right column)
+- Final output stored as `aiRun`
+
+---
+
+### ✅ Feature 4: Supabase Auth & Cloud Sync
+**Status:** Implemented (Phase 5)  
+**Description:** User authentication and cross-device sync
+
+- Email/password login and signup via Supabase Auth
+- Outbox pattern: all local writes queued, flushed to Supabase when online
+- `fetchRemoteData` on login pulls cloud items into local Dexie
+- Row-Level Security ensures each user only accesses their own data
 
 **Technical:**
-- Provider: Groq with agentic orchestration
-- Uses `agent.ts` for multi-step workflow
-- Each step is separate API call (allows caching/optimization later)
-- Total execution time: 10-30 seconds
+- `supabase.ts` — Supabase JS client
+- `outbox-processor.ts` — `processOutbox()` and `fetchRemoteData()`
+- Supabase tables: `research_items`, `ai_runs` (RLS enabled)
+
+---
+
+### ✅ Feature 5: Academic URL Scraping
+**Status:** Implemented (Phase 4)  
+**Description:** Deep scrape academic paper URLs to populate source text
+
+- User pastes a URL; proxy server scrapes full article text
+- Puppeteer with academic-specific selectors (Nature, Springer, ScienceDirect, PubMed)
+- Falls back to generic content extraction on unknown domains
+
+**Technical:**
+- Implemented in `server/index.mjs` via Puppeteer
+- Endpoint: `POST /api/scrape`
+
+---
+
+### ✅ Feature 6: 3-Column App Layout
+**Status:** Implemented (Phase 6–8)  
+**Description:** Full-app layout with sidebar navigation, main content, and AI workflow panel
+
+- **Sidebar** — nav links (Dashboard, Advisor, Citations, Improve, Topics), user email, online/offline badge, sync controls, logout
+- **Main content** — scrollable area for current view
+- **AIWorkflowPanel** — live step tracker for any active `aiRun`; shows step names, status icons, progress bar; cancel and view-report actions
+- **StatusBar** — item count, online indicator, outbox queue count
+- **Top bar** — search input, "New Research" button, reset demo button
+
+**Technical:**
+- `Sidebar.tsx`, `AIWorkflowPanel.tsx`, `StatusBar.tsx` in `features/layout/`
+- `AIWorkflowPanel` reads `run.steps[]` from Dexie live — no hardcoded step labels
+
+---
+
+### ✅ Feature 7: Analysis Advisor (Phase 9)
+**Status:** Implemented  
+**Description:** AI-powered research methodology recommender
 
 **User Flow:**
 ```
-1. User clicks "Generate Deep Insight"
-2. Shows loading + step indicator
-3. Each step calls Groq API sequentially
-4. Final synthesized insight displayed
-5. Persisted to DB (all intermediate steps also stored)
+1. Navigate to "Advisor" in sidebar
+2. Select a research item from dropdown
+3. Click "Analyze Methodology"
+4. AI classifies paradigm + extracts keywords
+5. Local scoring matches against 15-method matrix
+6. AI generates step-by-step guide for top method
+7. Results displayed: paradigm badge, top-3 methods ranked, guide panel
 ```
+
+**Output sections:**
+- Paradigm badge (Quantitative / Qualitative / Mixed Methods) + confidence %
+- Method cards #1/#2/#3 with complexity badge, suitability score, key features
+- Collapsible step-by-step guide for the top-ranked method
+- Cached — reloads last result when re-selecting same item
+
+**Technical:**
+- Workflow: `lib/ai/workflows/analysis-advisor.ts`
+- Prompts: `buildAdvisorPrompt('classify_extract' | 'guide', ...)`
+- Local data: `lib/data/methodology-matrix.json` (15 methods, scored offline)
+- `aiRun.prompt = 'Analysis Advisor'`
 
 ---
 
-### ✅ Feature 4: Details Modal (Full Insight View)
-**Status:** Implemented (Phase 3)  
-**Description:** Full-screen modal viewing of research item with all insights
-
-- Click "View Details" on any research item
-- Modal shows:
-  - **Top Section:** Original source text (read-only)
-  - **Bottom Section:** Two insight cards side-by-side
-    - Left: **Latest Summary** (Quick Summary output)
-    - Right: **Latest Deep Insight** (Agentic workflow output)
-- Each insight shows markdown-formatted text
-- Insights are read-only (outputs only, no prompts visible)
-- Close button or click outside to dismiss modal
-
-**Technical:**
-- Component: `ResearchList.tsx` (modal state)
-- Uses `getLatestSummaryRun()` and `getLatestDeepInsightRun()` helpers
-- Markdown rendering with syntax highlighting
-- Full-screen overlay with 95% viewport width/height
+### ✅ Feature 8: Reference & Citation Engine (Phase 10)
+**Status:** Implemented  
+**Description:** Search academic APIs and generate formatted citations
 
 **User Flow:**
 ```
-1. User clicks "View Details"
-2. Modal opens with fade-in animation
-3. Source text and latest insights displayed
-4. User can scroll to read full insight text
-5. Click close or press ESC to dismiss
+1. Navigate to "Citations" in sidebar
+2. Select a research item
+3. Click "Find References"
+4. AI extracts key terms from source text
+5. Semantic Scholar + CrossRef queried in parallel (browser-direct)
+6. Results deduped and ranked by relevance
+7. Toggle APA / MLA / Chicago style — formats instantly
+8. Copy individual citations or copy-all
 ```
 
----
-
-### 🟡 Feature 5: Research Improvement Analyzer
-**Status:** Partially Implemented (Phase 3)  
-**Description:** Suggest improvements to research methodology, bias detection, gap analysis
-
-- (Infrastructure exists in agentic workflow)
-- Currently hidden from UI (Phase 3 outputs-only view)
-- Will be enhanced in Phase 5 as separate feature button:
-  - "Analyze Research Quality"
-  - "Detect Potential Bias"
-  - "Identify Knowledge Gaps"
-
-**Future Technical:**
-- Separate agentic workflow distinct from "Deep Insight"
-- Focus on critical analysis, not just summarization
-- Could include rubric-based scoring
-
----
-
-### 🟡 Feature 6: Reference Finder
-**Status:** Not Implemented (Phase 4+)  
-**Description:** Extract and suggest related papers, articles, or topics
-
-- Parse source text for references
-- Generate search queries for related work
-- Suggest links to follow
-- Cache suggestions locally
+**Output sections:**
+- Reference cards: title, authors, year, venue/journal, source badge, citation count, DOI, abstract
+- Style toggle (APA 7 / MLA 9 / Chicago 17) reformats all without re-fetching
+- Copy button per card + "Copy All [N] Citations" button with 1800 ms toast
+- External link to paper
 
 **Technical:**
-- Requires integration with external reference APIs (future)
-- Or use agentic workflow to suggest search terms
-- Storage in `aiRuns` with `type='references'`
+- Workflow: `lib/ai/workflows/citation-engine.ts`
+- APIs: Semantic Scholar `api.semanticscholar.org` + CrossRef `api.crossref.org` (CORS-enabled, no proxy)
+- Ranking: `dedupeAndRank(refs, terms)` — keyword overlap × 20 + recency × 2 + citation count / 10
+- Formatting: pure client-side `formatCitation(ref, style)` function
+- `aiRun.prompt = 'Citation Engine'`
 
 ---
 
-### 🟡 Feature 7: Topic Maker/Analyzer
-**Status:** Not Implemented (Phase 4+)  
-**Description:** Automatically extract and organize topics from research
+### ✅ Feature 9: Research Improvement Analyzer (Phase 11)
+**Status:** Implemented  
+**Description:** Coherence scoring, argument auditing, gap detection, and rewrite suggestions
 
-- Extract named entities, concepts, themes
-- Build topic graph
-- Suggest related research directions
-- Organize by topic clusters
+**User Flow:**
+```
+1. Navigate to "Improve" in sidebar
+2. Select a research item
+3. Click "Analyze Writing"
+4. AI classifies section type and segments into paragraphs
+5. AI audits coherence, argument strength, gaps
+6. AI rewrites the weakest paragraph
+7. Results displayed: score overview, issues, paragraph breakdown, before/after rewrite
+```
+
+**Output sections:**
+- Overall score (0–10) with color-coded bar (green ≥7, amber ≥4, rose <4)
+- Section type badge (Introduction, Methodology, Results, etc.)
+- Argument issues list (amber)
+- Gaps detected list (rose)
+- Paragraph breakdown — collapsible cards with per-paragraph score, issues, suggestion
+- Before/after rewrite for the weakest paragraph
+- Offline fallback: regex paragraph splitting + default scores
 
 **Technical:**
-- Could use Groq with structured output
-- Store topics in new `topics` table
-- Visualize as graph or hierarchy
+- Workflow: `lib/ai/workflows/improvement-analyzer.ts`
+- Prompts: `buildImprovementPrompt('segment' | 'audit' | 'rewrite', ...)`
+- `aiRun.prompt = 'Improvement Analyzer'`
 
 ---
 
-### ⏳ Feature 8: User Authentication
-**Status:** Not Implemented (Phase 4)  
-**Description:** Sign up, log in, manage research across devices
+### ✅ Feature 10: Topic Builder (Phase 12)
+**Status:** Implemented  
+**Description:** AI-generated research topics with scores, then a full chapter outline
 
-- Supabase Auth integration (50k MAU free tier)
-- Email + password login
-- Persist user context in React (via Supabase client)
-- Future: Google/GitHub OAuth
+**User Flow:**
+```
+1. Navigate to "Topics" in sidebar
+2. Select a research item (auto-fills seed) or type a custom seed
+3. Click "Generate Topics"
+4. AI returns 5 topics, each scored on Novelty (0–10) + Feasibility (0–10)
+5. Expand any topic: research questions, hypothesis, score rationale
+6. Click "Select Topic" to choose one
+7. Click "Build Research Outline"
+8. AI returns 7-chapter outline (Abstract → Conclusion)
+9. Expand each chapter: purpose, key points, suggested word count
+```
+
+**Output sections — Topics:**
+- 5 topic cards with overall score badge (average of novelty + feasibility)
+- Novelty bar (blue) and Feasibility bar (violet)
+- Expandable detail: research questions, hypothesis, novelty reason, feasibility reason
+- Selected topic highlighted with primary ring + check badge
+
+**Output sections — Outline:**
+- 7 chapter cards: Abstract, Introduction, Literature Review, Methodology, Results, Discussion, Conclusion
+- Each card: emoji icon, purpose, suggested word count
+- Expandable key points list
 
 **Technical:**
-- Supabase Auth client in React
-- JWT tokens stored in localStorage
-- Add user_id to researchItems, aiRuns
-
----
-
-### ⏳ Feature 9: Cloud Sync (Supabase)
-**Status:** Not Implemented (Phase 4)  
-**Description:** Sync research items and insights to cloud database
-
-- Outbox pattern for offline edits
-- Automatic sync when online
-- Conflict resolution (last-write-wins)
-- Data recovery from cloud
-
-**Technical:**
-- Supabase PostgreSQL tables mirror Dexie schema
-- Outbox table tracks pending changes
-- Sync triggered on user login + interval polling
-- Use `supabase-js` client
+- Workflow: `lib/ai/workflows/topic-builder.ts`
+  - `runTopicGenerationWorkflow(seed, researchItemId)` → `{ runId, result }`
+  - `runOutlineBuildWorkflow(topic, researchItemId)` → `{ runId, outline }`
+- Prompts: `buildTopicPrompt(seed)`, `buildOutlinePrompt(title, questions, hypothesis, subtopics)`
+- Two separate `aiRun` records (one per phase)
 
 ---
 
 ## Feature Matrix
 
-| Feature | MVP | Phase | Status | Provider | Priority |
-|---------|-----|-------|--------|----------|----------|
-| Research Input | ✅ | 2 | Done | IndexedDB | Critical |
-| Quick Summary | ✅ | 3 | Done | Groq | Critical |
-| Deep Insight | ✅ | 3 | Done | Groq | Critical |
-| Details Modal | ✅ | 3 | Done | React | Critical |
-| Academic Scraper| ✅ | 4 | Done | Puppeteer | High |
-| User Auth | - | 5 | Not Started | Supabase | High |
-| Cloud Sync | - | 5 | Not Started | Supabase | High |
-| Advisor Agent | - | 7 | Not Started | Groq | Medium |
+| Feature | Phase | Status | Provider | AI Calls |
+|---------|-------|--------|----------|----------|
+| Research Input & Management | 2 | ✅ Done | IndexedDB | 0 |
+| Quick Summary | 3 | ✅ Done | Groq | 1 |
+| Deep Insight (Agentic) | 3 | ✅ Done | Groq | 4 |
+| Academic URL Scraper | 4 | ✅ Done | Puppeteer | 0 |
+| Supabase Auth & Sync | 5 | ✅ Done | Supabase | 0 |
+| 3-Column Layout | 6–8 | ✅ Done | React | 0 |
+| Analysis Advisor | 9 | ✅ Done | Groq | 2 |
+| Reference & Citation Engine | 10 | ✅ Done | Groq + Public APIs | 1 |
+| Research Improvement Analyzer | 11 | ✅ Done | Groq | 3 |
+| Topic Builder | 12 | ✅ Done | Groq | 2 |
 
-## Feature Dependencies
-
-```
-Phase 2: Research Input
-  ↓
-Phase 3: AI Features (Summary, Deep Insight, Modal)
-  ↓
-Phase 4: Authentication + Cloud Sync
-  ↓
-Phase 5: Advanced Features (Reference Finder, Topic Analyzer)
-```
+---
 
 ## User Workflows
 
-### Workflow 1: Quick Research Summary
+### Workflow 1: Create and Analyze Research
 ```
-1. Paste research text into form
-2. Click "Create Research Item"
-3. Item appears in list
-4. Click "Generate Summary"
-5. Read summary in expandable card
-6. Click "View Details" to see full summary in modal
+1. Log in (Supabase Auth)
+2. Click "New Research" → fill title + source text (or paste URL to scrape)
+3. Item appears in dashboard list
+4. Click "Analyze" → Deep Insight agentic workflow runs
+5. Watch live step progress in AIWorkflowPanel (right column)
+6. Read structured insight in the panel
 ```
-**Time:** 2-3 minutes  
-**Requires:** Internet (for Groq API)  
-**Can be done offline:** Only if summary already generated
+
+### Workflow 2: Get Methodology Advice
+```
+1. Navigate to "Advisor" in sidebar
+2. Select research item from dropdown
+3. Click "Analyze Methodology"
+4. Read paradigm classification + top 3 method recommendations
+5. Expand step-by-step guide for best method
+```
+
+### Workflow 3: Find and Format References
+```
+1. Navigate to "Citations" in sidebar
+2. Select research item
+3. Click "Find References"
+4. Browse ranked academic papers
+5. Toggle APA / MLA / Chicago style
+6. Click "Copy All" to grab all citations at once
+```
+
+### Workflow 4: Improve Writing Quality
+```
+1. Navigate to "Improve" in sidebar
+2. Select research item
+3. Click "Analyze Writing"
+4. Review coherence score + argument issues + gaps
+5. Expand paragraph breakdown to find weakest section
+6. Use suggested rewrite as a starting point
+```
+
+### Workflow 5: Generate Topics and Outline
+```
+1. Navigate to "Topics" in sidebar
+2. Select a research item or type a seed phrase
+3. Click "Generate Topics"
+4. Review 5 scored topics; expand for details
+5. Select best topic
+6. Click "Build Research Outline"
+7. Review 7-chapter outline with key points
+```
 
 ---
 
-### Workflow 2: Deep Analysis
-```
-1. Have research item in list
-2. Click "Generate Deep Insight"
-3. Wait for agentic workflow (10-30 sec)
-4. View structured analysis in card
-5. Click "View Details" for full modal view
-6. Save insights locally (automatic via Dexie)
-```
-**Time:** 5-10 minutes  
-**Requires:** Internet  
-**Can reference:** Multiple research items simultaneously
+## Acceptance Criteria — Phases 9–12
+
+### Phase 9: Analysis Advisor
+- [x] Paradigm classified (quantitative / qualitative / mixed) with confidence %
+- [x] Top 3 methods recommended from 15-method local matrix
+- [x] Step-by-step guide generated for top method
+- [x] Cached result reloaded on revisit
+- [x] Offline fallback (keyword regex detection, local scoring)
+
+### Phase 10: Citation Engine
+- [x] Key terms extracted from research text
+- [x] Semantic Scholar + CrossRef searched in parallel
+- [x] Results deduped and ranked by relevance
+- [x] APA 7 / MLA 9 / Chicago 17 formatting works client-side
+- [x] Copy individual + copy all with toast feedback
+
+### Phase 11: Improvement Analyzer
+- [x] Section type detected (Introduction, Methodology, etc.)
+- [x] Overall coherence score produced
+- [x] Argument issues and gaps listed
+- [x] Per-paragraph breakdown with issues + suggestion
+- [x] Before/after rewrite for weakest paragraph
+- [x] Offline fallback (regex paragraph splitting)
+
+### Phase 12: Topic Builder
+- [x] 5 topics generated with novelty + feasibility scores
+- [x] Research questions and hypothesis per topic
+- [x] User can select a topic interactively
+- [x] 7-chapter outline generated for selected topic
+- [x] Each chapter has purpose, key points, suggested word count
+- [x] Both workflows stored as separate `aiRun` entries
 
 ---
-
-### Workflow 3: Offline Usage (Phase 2+)
-```
-1. Create research items while online
-2. Generate summaries + insights while online
-3. Go offline
-4. Can still view all research items + insights
-5. Cannot generate new summaries until online again
-```
-
----
-
-### Workflow 4: Sync Across Devices (Phase 4+)
-```
-1. Create account with Supabase Auth
-2. Add research items on device A
-3. Open app on device B, log in
-4. See all research from device A (synced)
-5. Add new item on device B
-6. Device A auto-syncs when online
-```
-
----
-
-## Acceptance Criteria
-
-### For Phase 3 (Current)
-- [x] Create and persist research items locally
-- [x] Generate summaries with Groq API
-- [x] Generate deep insights with agentic workflow
-- [x] View summaries and insights in full-screen modal
-- [x] All data works offline after initial generation
-- [x] UI is responsive and polished
-
-### For Phase 4
-- [ ] User can sign up and log in
-- [ ] Research items sync to Supabase
-- [ ] Changes offline are queued and synced online
-- [ ] Multiple devices see same research
-
-### For Phase 5+
-- [ ] Advanced features (reference finder, topic analyzer) shipped
-- [ ] Performance optimized (< 2s load, < 5s deep insight)
-- [ ] E2E tests covering all workflows
 
 ## Known Limitations
 
-1. **No real-time sync yet** (Phase 4)
-2. **Gemini API blocked** (user account billing exhausted)
-3. **Agent steps not visible to user** (by design, Phase 3 outputs-only)
-4. **No user account** (Phase 4)
-5. **No conflict resolution for offline edits** (Phase 4)
-6. **No rate limiting** (low priority for hackathon)
-
-## Future Enhancements
-
-- [ ] Support for file uploads (PDF, DOCX parsing)
-- [ ] Export insights to markdown/PDF
-- [ ] Share research collections
-- [ ] Collaborative editing (multi-user)
-- [ ] Custom AI models (bring your own API key)
-- [ ] Local model support (Ollama, LLaMA.cpp)
-- [ ] Research citation generation
-- [ ] Audit trail / version history
+1. Gemini fallback requires active billing on Google Cloud account
+2. Academic scraper needs proxy server running (localhost:3001)
+3. Last-write-wins sync — no granular conflict resolution
+4. Citation Engine searches live APIs — results vary by network latency
+5. No PDF/DOCX file upload yet (source text is manual paste or URL scrape)

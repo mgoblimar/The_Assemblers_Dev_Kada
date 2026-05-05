@@ -1,489 +1,284 @@
 # Technical Decisions & Rationale
 
 **Project:** Research Tool with AI & Agentic Workflows  
-**Decision Log Version:** 1.0  
-**Date:** May 5, 2026
+**Decision Log Version:** 2.0  
+**Date:** May 6, 2026
+
+---
 
 ## Decision 1: Choose Groq Over Gemini as Primary Provider
 
-**Decision:** Use Groq (llama-3.3-70b-versatile) as the primary AI provider, with Gemini as fallback.
+**Decision:** Use Groq (llama-3.3-70b-versatile) as primary AI provider; Gemini as fallback.
 
-**Context:**
-- Phase 3 requires quick AI integration for hackathon
-- Two main contenders: Google Gemini (free tier, then prepay) vs Groq (free tier, no prepay)
-- Time constraint: Need working AI feature ASAP
+**Context:** Phase 3 required quick AI integration. Groq offers a free tier with no billing required and very fast inference. Gemini requires prepay after quota exhaustion.
 
 **Options Considered:**
 
-| Provider | Tier | Cost | Quota | Speed | Status |
-|----------|------|------|-------|-------|--------|
-| Groq | Free | $0 | 30k tokens/min | Very Fast | ✅ Selected |
-| Gemini | Free | $0 initially | Limited | Standard | Fallback |
-| Gemini | Prepay | Variable | Unlimited | Standard | Expensive for hackathon |
-| OpenAI | Paid | $0.15-0.60/1k tokens | Per budget | Standard | Too costly |
-| Claude | Paid | API rates | Per budget | Standard | Too costly |
+| Provider | Tier | Cost | Speed | Status |
+|----------|------|------|-------|--------|
+| Groq | Free | $0 | Very Fast | ✅ Selected |
+| Gemini | Free then prepay | Variable | Standard | Fallback |
+| OpenAI | Paid | $0.15–0.60/1k tokens | Standard | Too costly |
 
-**Decision Rationale:**
-1. **Free tier availability:** Both Groq and Gemini free tier work initially
-2. **No billing required:** Groq stays free indefinitely; Gemini requires prepay after quota
-3. **Speed:** Groq faster inference (important for user experience)
-4. **Reliability:** Groq free tier more stable (no quota surprises)
-5. **Hackathon context:** No budget for prepay; speed matters for demo
-
-**Outcome:**
-- ✅ Groq set as `VITE_AI_PROVIDER=groq` in .env.example
-- ✅ Gemini configured as fallback (infrastructure ready)
-- ✅ Both adapters in codebase for future flexibility
-
-**Alternative Route:**
-If Groq API becomes unavailable:
-1. Switch to Gemini (same prompt, different request format)
-2. Or use local model (Ollama/LLaMA.cpp) with same adapter pattern
+**Outcome:** Groq set as `VITE_AI_PROVIDER=groq`; both adapters kept in codebase.
 
 ---
 
 ## Decision 2: Offline-First with IndexedDB (Dexie)
 
-**Decision:** Use IndexedDB via Dexie for local data storage, not cloud-first.
+**Decision:** Use IndexedDB via Dexie for local data storage; sync to Supabase via outbox.
 
-**Context:**
-- Feature requirement: "Offline-first (works without internet via local models/cache)"
-- User should be able to create research items and view results offline
-- Phase 4 adds cloud sync; Phase 3 should work standalone
+**Context:** Core requirement: "works offline." All user data must survive network loss.
 
 **Options Considered:**
 
-| Storage | Offline | Cloud Sync | Setup | Size Limit |
-|---------|---------|-----------|-------|------------|
-| IndexedDB + Dexie | ✅ Yes | Later (Phase 4) | Easy | ~50MB per origin |
-| Supabase only | ❌ No | Built-in | Medium | Unlimited |
-| SQLite + wa-sqlite | ✅ Yes | Complex | Hard | ~100MB per tab |
-| LocalStorage | ✅ Yes | Manual | Very Easy | ~5MB |
+| Storage | Offline | Cloud Sync | Complexity |
+|---------|---------|-----------|------------|
+| IndexedDB + Dexie | ✅ Yes | Via outbox | Low |
+| Supabase only | ❌ No | Built-in | Medium |
+| LocalStorage | ✅ Yes | Manual | Very Low, 5 MB limit |
 
-**Decision Rationale:**
-1. **Offline requirement:** IndexedDB + Dexie is industry standard for offline-first
-2. **Easy integration:** Dexie has clean TypeScript API
-3. **Sufficient size:** 50MB enough for thousands of research items + insights
-4. **Future-ready:** Dexie → Supabase migration path clear for Phase 4
-5. **No backend complexity:** User data stays local until Phase 4 sync
-6. **Performance:** IndexedDB faster than LocalStorage for large datasets
-
-**Outcome:**
-- ✅ Dexie v4 installed
-- ✅ Schema: `researchItems`, `aiRuns`, `outbox` tables
-- ✅ All data operations go through `research-repository.ts`
-- ✅ Outbox table prepared for Phase 4 sync
-
-**Trade-offs:**
-- ❌ Data not synced until Phase 4 (acceptable for MVP)
-- ❌ Different data per browser/device (acceptable until Phase 4)
-- ✅ Works offline (requirement met)
+**Outcome:** Dexie v4 with `researchItems`, `aiRuns`, `outbox` tables. Outbox pattern syncs to Supabase when online.
 
 ---
 
-## Decision 3: Express.js Proxy for API Calls
+## Decision 3: Express.js Proxy for AI API Calls
 
-**Decision:** Use Express.js middleware to proxy Groq/Gemini API calls instead of calling directly from React.
+**Decision:** Use Express.js to proxy Groq/Gemini calls, keeping API keys server-side.
 
-**Context:**
-- API keys must be secret (cannot be in frontend code)
-- React frontend cannot safely call external APIs with credentials
-- Need centralized error handling and request sanitization
+**Context:** API keys must not be in frontend code. CORS restrictions and credential security.
 
-**Options Considered:**
-
-| Approach | Safety | Complexity | Cost | CORS |
-|----------|--------|-----------|------|------|
-| Express proxy | ✅ High | Low | Free | ✅ Simple |
-| Next.js API routes | ✅ High | Low | Free | ✅ Simple |
-| Supabase Auth + Edge | ✅ High | Medium | Minimal | ✅ Yes |
-| Direct from React | ❌ Unsafe | None | Free | ⚠️ CORS needed |
-
-**Decision Rationale:**
-1. **Security:** API keys kept on server, never exposed to browser
-2. **Simplicity:** Express is lightweight; one small server file
-3. **Logging:** Can sanitize logs (log model, not keys)
-4. **Flexibility:** Can add middleware later (auth, rate limiting, etc.)
-5. **Portability:** Works with any deployment (Vercel, Railway, VPS)
-
-**Outcome:**
-- ✅ Express server: `server/index.mjs` (30 lines, two endpoints)
-- ✅ Routes: `/api/groq` and `/api/gemini`
-- ✅ Security: Logs model name only, never logs keys
-- ✅ Runs on port 3001 during dev
-
-**Alternative (Future):**
-- Phase 5: Migrate to Next.js API routes for unified deployment
+**Outcome:** `server/index.mjs` — `/api/groq`, `/api/gemini`, `/api/scrape`. Logs model name only, never logs keys or request bodies.
 
 ---
 
-## Decision 4: Agentic Workflow for Deep Insight
+## Decision 4: Agentic Workflow with `steps[]` Tracking
 
-**Decision:** Implement multi-step agentic workflow for "Deep Insight" generation, not single API call.
+**Decision:** Every AI workflow creates an `aiRun` record with a `steps[]` array that gets updated in real-time as each step completes.
 
-**Context:**
-- "Deep Insight" should be comprehensive, not just a summary
-- User requested "with deep insight remove the agentic things just the output"
-- Need to generate deeper analysis, but hide intermediate steps from UI
+**Context:** Hackathon judging criteria includes "agentic" behavior. Users and judges need visibility into what the AI is doing.
 
-**Options Considered:**
+**Workflow contract:**
+1. Create `aiRun` in Dexie with `steps: [{ name, status: 'pending' }]`
+2. After each AI call: update `steps[i].status` to `'completed'` or `'failed'`
+3. Store final JSON in `aiRun.output`, set `status: 'completed'`
+4. Add outbox entry for sync
+5. Return `{ runId, result }`
 
-| Approach | Quality | Steps | Speed | Complexity |
-|----------|---------|-------|-------|------------|
-| Single API call | Medium | 1 | 3-5s | Low |
-| Multi-step agent | ✅ High | 4 | 10-30s | Medium |
-| Retrieval-Augmented | ✅ Very High | 5+ | 30s+ | High |
-| Local model | Medium | Variable | Depends | High |
-
-**Decision Rationale:**
-1. **Quality:** Multi-step produces deeper insights than single call
-2. **Structured:** Agent can decompose problem into steps
-3. **Cacheable:** Each step output can be cached/reused
-4. **Explainable:** (Internally) each step is debuggable
-5. **User UX:** (Per request) show only final output, not steps
-
-**Workflow Steps:**
-1. **Analyze Themes:** Extract key topics from source
-2. **Generate Questions:** Create research questions to explore
-3. **Find Connections:** Link to related concepts/literature
-4. **Synthesize:** Produce final actionable insights
-
-**Outcome:**
-- ✅ Agent implemented: `src/lib/ai/agent.ts`
-- ✅ Each step calls Groq API with context from previous steps
-- ✅ All intermediate outputs stored in `aiRuns` table
-- ✅ UI shows only final output (per user request)
-
-**Trade-offs:**
-- ❌ Slower than single API call (10-30s vs 3-5s) - acceptable for "deep" work
-- ✅ Better quality analysis
-- ✅ Future: Can add agent-step visibility in settings
+**Outcome:** `AIWorkflowPanel` reads `run.steps[i].name` dynamically — no hardcoded step labels in the panel. Any workflow's steps display correctly.
 
 ---
 
-## Decision 5: React Hooks + TypeScript (No Redux)
+## Decision 5: React Hooks Only (No Redux/Zustand)
 
-**Decision:** Use React hooks for state management; no Redux, no Zustand.
+**Decision:** Use React `useState`/`useEffect` for all state. No external state manager.
 
-**Context:**
-- Phase 3 scope: Read-heavy (view research + insights)
-- Main state: `researchItems[]`, `selectedItem`, `isModalOpen`
-- No complex async workflows or time-travel debugging needed
+**Context:** App state is mostly component-local (form state, selected item, loading flags). The one piece of cross-component state (`activeRunId`) is lifted to `App.tsx` and passed down as props.
 
-**Options Considered:**
-
-| Library | Complexity | Bundle | Learning | Use Case |
-|---------|-----------|--------|----------|----------|
-| React hooks | Low | 0kb | Minimal | ✅ Simple state |
-| Redux | Very High | 35kb | Steep | Complex flows |
-| Zustand | Medium | 2kb | Easy | Larger apps |
-| Recoil | Medium | 20kb | Medium | Shared state |
-
-**Decision Rationale:**
-1. **Scope:** Not enough complexity to justify Redux overhead
-2. **Team size:** One person; minimal state coordination needed
-3. **Performance:** React hooks sufficient for this app size
-4. **Future:** Easy to migrate to Zustand if Phase 4 gets complex
-
-**Outcome:**
-- ✅ All components use `useState`, `useEffect`
-- ✅ Props passed down naturally
-- ✅ Context not needed (no deep prop drilling)
-- ✅ Minimal mental overhead
-
-**Future Migration Path:**
-- If Phase 4 adds user context + sync state → upgrade to Zustand
-- Rule: Only add state management when truly needed
+**Outcome:** Simple, minimal bundle, easy to understand. If complexity grows, Zustand would be the natural upgrade path.
 
 ---
 
-## Decision 6: Tailwind CSS v4 (Utility-First Styling)
+## Decision 6: Tailwind CSS v4 + shadcn/ui
 
-**Decision:** Use Tailwind CSS v4.2.4 with utility-first approach, not CSS-in-JS or styled-components.
+**Decision:** Utility-first styling with Tailwind v4; shadcn/ui for accessible component primitives (Button, Badge, Card, Input, Select, Toaster).
 
-**Context:**
-- Need fast UI styling without setup overhead
-- Responsive design required for demo
-- Hackathon timeline: want to move fast
-
-**Options Considered:**
-
-| Approach | Setup Time | Bundle Size | DX | Speed |
-|----------|-----------|-------------|-----|-------|
-| Tailwind | Low | 15kb (gzipped) | ✅ Great | Very fast |
-| Styled-components | Medium | 25kb | Good | Normal |
-| CSS Modules | Medium | 0kb | Verbose | Normal |
-| Plain CSS | High | 0kb | Poor | Slow |
-
-**Decision Rationale:**
-1. **Speed:** Quickest to style (utility classes)
-2. **Consistency:** Design tokens in config (spacing, colors, etc.)
-3. **Bundle:** Small gzipped size
-4. **Responsive:** Built-in mobile-first helpers
-5. **Tailwind v4:** New CSS engine, faster parsing
-
-**Outcome:**
-- ✅ Tailwind v4.2.4 configured
-- ✅ Config in `tailwind.config.ts`
-- ✅ Global styles in `src/index.css`
-- ✅ Components use `className=` utility classes
+**Outcome:** Consistent design system with minimal custom CSS. Components look polished without heavy UI framework overhead.
 
 ---
 
 ## Decision 7: TypeScript Strict Mode
 
-**Decision:** Enable TypeScript strict mode; all code must be fully typed.
+**Decision:** `"strict": true` in `tsconfig.json`. No `any` types allowed.
 
-**Context:**
-- Hackathon codebase will be handed off
-- Better DX for future developers
-- Catches bugs early
-
-**Options Considered:**
-
-| Setting | Type Safety | Errors | Development Speed |
-|---------|-----------|--------|-------------------|
-| Strict: true | ✅ Maximum | Many (early) | Slower upfront |
-| Strict: false | ⚠️ Partial | Few | Faster initially |
-
-**Decision Rationale:**
-1. **Handoff:** Future developers need confidence in types
-2. **Bugs:** Strict mode catches errors at compile time
-3. **Refactoring:** Large refactors safer with strict types
-4. **Documentation:** Types serve as inline documentation
-
-**Outcome:**
-- ✅ `tsconfig.json`: `"strict": true`
-- ✅ No `any` types allowed
-- ✅ All props, functions, returns typed
-- ✅ Build fails on type errors (good)
-
-**Mitigation:**
-- If needed, `// @ts-ignore` comments allowed with justification
+**Rationale:** Hackathon codebase handed off to other developers. Strict types serve as inline documentation and catch bugs at compile time.
 
 ---
 
 ## Decision 8: Vite (Not Create React App)
 
-**Decision:** Use Vite as the build tool, not Create React App.
+**Decision:** Vite v8 as build tool.
 
-**Context:**
-- Need fast HMR (Hot Module Replacement) for dev experience
-- Smaller build, faster startup
-- Vite is modern standard (2024+)
+**Rationale:** Instant HMR (< 100 ms), 10× faster builds than CRA, industry standard for React in 2024+.
+
+---
+
+## Decision 9: Supabase Sync Deferred to Phase 5
+
+**Decision:** Phases 2–4 are fully offline; Supabase sync added in Phase 5.
+
+**Rationale:** Separate concerns. Phase 3 focused on AI, not sync. Outbox table pre-created so migration was seamless.
+
+---
+
+## Decision 10: Local Methodology Matrix for Phase 9 (Analysis Advisor)
+
+**Decision:** Ship a static `methodology-matrix.json` with 15 pre-scored research methods instead of asking the AI to recommend methods cold.
+
+**Context:** Phase 9 Analysis Advisor needs to recommend analytical methods. Options:
+1. Ask AI to recommend methods directly (fully dynamic, but no constraints, inconsistent output)
+2. Ship a local JSON matrix and use AI only for classification + guide writing (structured, reliable, works offline)
 
 **Options Considered:**
 
-| Tool | Build Time | Dev Time | Maturity | Size |
-|------|-----------|----------|----------|------|
-| Vite | ✅ Very Fast | ✅ Instant HMR | ✅ Mature | Small |
-| CRA | Slow | Slow HMR | Mature | Larger |
-| Next.js | Medium | Fast | Very Mature | Large |
+| Approach | Offline | Consistency | Control | Speed |
+|----------|---------|------------|---------|-------|
+| AI recommends methods cold | ❌ No | ⚠️ Variable | Low | Slow |
+| Local matrix + AI classification | ✅ Yes | ✅ Consistent | High | Fast |
+| Hardcoded heuristics only | ✅ Yes | ✅ Consistent | High | Instant |
 
 **Decision Rationale:**
-1. **DX:** Vite's HMR is instant (< 100ms)
-2. **Speed:** Builds 10x faster than CRA
-3. **Modern:** Industry standard for React 2024+
-4. **Simplicity:** No complex config (works out-of-the-box)
+1. **Offline scoring:** Matrix scoring works with no AI call — fallback guaranteed
+2. **Consistency:** Always the same 15 methods, always ranked the same way
+3. **Control:** We decide which methods are valid; AI only handles natural-language classification
+4. **Quality:** Keyword overlap scoring is deterministic and explainable
 
-**Outcome:**
-- ✅ Vite v8.0.10 configured
-- ✅ `vite.config.ts` minimal config
-- ✅ `npm run dev` starts in < 1 second
-- ✅ Changes hot-reload instantly
+**Matrix contents:** 15 methods across quantitative (Pearson correlation, linear regression, multiple regression, t-tests, ANOVA, chi-square, logistic regression), qualitative (thematic analysis, grounded theory, content analysis, case study, discourse analysis), and mixed methods (convergent, sequential explanatory, sequential exploratory). Each entry has `keywords[]` for scoring.
+
+**Outcome:** `lib/data/methodology-matrix.json` (static, bundled). AI calls in `analysis-advisor.ts` handle classification (Step 1) and guide generation (Step 3). Scoring (Step 2) is pure local computation.
 
 ---
 
-## Decision 9: Phase 4 = Supabase Sync (Defer Cloud)
+## Decision 11: Browser-Direct API Calls for Citation Engine (Phase 10)
 
-**Decision:** Phase 4 (not Phase 3) will add Supabase sync; Phase 3 is offline-only.
+**Decision:** Call Semantic Scholar and CrossRef APIs directly from the browser, not through the Express proxy.
 
-**Context:**
-- Phase 3 deadline: AI integration working
-- Adding cloud sync would delay Phase 3
-- Two-phase approach: Local first, then cloud
-
-**Rationale:**
-1. **MVP scope:** Phase 3 focused on AI, not sync
-2. **Risk:** Cloud sync adds complexity (conflicts, auth, etc.)
-3. **Time:** Separate concerns into separate phases
-4. **Testing:** Easier to test each phase independently
-
-**Outcome:**
-- ✅ Phase 3: Offline-first, local data only
-- ✅ Phase 4: Supabase Auth + DB sync
-- ✅ Outbox table pre-created for Phase 4 implementation
-
----
-
-## Decision 10: Dual Insight Buttons (Not Dropdown)
-
-**Decision:** Show "Generate Summary" and "Generate Deep Insight" as two separate buttons, not a dropdown.
-
-**Context:**
-- User can run both workflows on same research item
-- Different insights answer different questions
-- UX clarity
+**Context:** Phase 10 Citation Engine needs to search academic paper databases. Options:
+1. Route through Express proxy (adds latency, requires server running)
+2. Call academic APIs directly from browser (simpler, faster)
 
 **Options Considered:**
 
-| Layout | Discoverability | Clicks | Mobile-Friendly |
-|--------|-----------------|--------|-----------------|
-| Two buttons | ✅ Clear | 1 | ✅ Yes |
-| Dropdown | Medium | 2+ | ⚠️ Awkward |
-| Tabs | OK | 1+ | ⚠️ Tabs can be fiddly |
+| Approach | Requires Server | Latency | Key Required | CORS |
+|----------|----------------|---------|-------------|------|
+| Via Express proxy | ✅ Yes | +round-trip | Optional | Solved |
+| Browser-direct | ❌ No | Minimal | No | ✅ Both APIs support it |
 
 **Decision Rationale:**
-1. **Clarity:** Both options immediately visible
-2. **Independence:** Each can run separately or in sequence
-3. **Mobile:** Buttons easier to tap than dropdown
-4. **Consistency:** Matches common UI patterns
+1. **No API keys needed:** Semantic Scholar and CrossRef both offer CORS-enabled public endpoints
+2. **No proxy dependency:** Citation Engine works even if the Express server isn't running
+3. **Simpler code:** No proxy route to add or maintain
+4. **Parallel fetching:** Browser can call both APIs simultaneously with `Promise.allSettled`
 
-**Outcome:**
-- ✅ ResearchAI component has two buttons
-- ✅ Each shows separate loading state
-- ✅ Each can have independent card for result
+**Safeguards:**
+- `AbortSignal.timeout(8000)` on both calls to prevent hanging
+- `Promise.allSettled` so one API failure doesn't block results from the other
+- Dedup by DOI + title similarity after merging results
 
----
-
-## Decision 11: Outputs-Only Modal (No Prompts/Steps)
-
-**Decision:** Details modal shows only AI outputs; does not display prompts, intermediate steps, or metadata.
-
-**Context:**
-- User feedback: "with deep insight remove the agentic things just the output"
-- UX clarity: End users don't care about prompts; they want insights
-- Could add "show prompts" toggle in future if desired
-
-**Rationale:**
-1. **User focus:** Researchers want insights, not internals
-2. **Clarity:** Less visual clutter in modal
-3. **Future:** Easy to add toggle later if needed
-
-**Outcome:**
-- ✅ Modal shows: Source text + Latest Summary + Latest Deep Insight
-- ✅ No prompts, no agent steps, no metadata
-- ✅ Markdown-formatted output only
-
-**Toggle idea (Phase 5):**
-```
-[ Show internals ]
-← Reveals prompts, steps, tokens, etc.
-```
+**Outcome:** `citation-engine.ts` calls `api.semanticscholar.org` and `api.crossref.org` directly from the browser. Zero proxy changes needed.
 
 ---
 
-## Decision 12: Free Tools Only (No Paid Services)
+## Decision 12: Client-Side Citation Formatting (Phase 10)
 
-**Decision:** Use only free-tier services for hackathon (Groq free, Supabase free tier, no paid APIs).
+**Decision:** Format citations (APA 7, MLA 9, Chicago 17) entirely in the browser with a `formatCitation(ref, style)` pure function. Do not call AI to format citations.
 
-**Context:**
-- Hackathon budget: $0 (no credit cards to expense)
-- Demo should work without ongoing costs
-- Free tiers provide enough for MVP
+**Context:** Citation formatting is deterministic. Using AI adds latency and risks hallucinated formats.
 
-**Services Used:**
+**Decision Rationale:**
+1. **Instant toggle:** Switching APA → MLA → Chicago reformat all cards with no network call
+2. **No AI cost:** Deterministic rules, no token spend
+3. **Correctness:** Rules can be precisely encoded; AI paraphrases them
 
-| Service | Free Tier | Cost After | Used For |
-|---------|-----------|------------|----------|
-| Groq | 30k tokens/min | Free | AI inference |
-| Supabase | 50k MAU + 500MB DB | Overage charges | Auth + Sync (Phase 4) |
-| Railway/Render | $5/month free tier | $7-50+/month | Hosting |
-| GitHub | Free | Pro $4/month | Version control |
-
-**Outcome:**
-- ✅ Phase 3 costs: $0
-- ✅ Phase 4 costs: $0 (within Supabase free tier)
-- ✅ Demo deployable for free
-- ✅ If app grows → upgrade to paid tiers later
+**Outcome:** `formatCitation(ref, style)` in `CitationEngine.tsx` — handles author name formatting, title italics, publisher format, DOI links per style guide.
 
 ---
 
-## Decision 13: Express.js (Not Full Backend Framework)
+## Decision 13: 3-Pipeline AI Call Strategy for Improvement Analyzer (Phase 11)
 
-**Decision:** Use lightweight Express.js for API proxy, not Django/FastAPI/NestJS.
+**Decision:** Use 3 sequential AI calls (segment → audit → rewrite), not 5+ separate calls for each paragraph.
 
-**Context:**
-- Only need simple proxy (route, forward, return)
-- No database in backend (data stored in IndexedDB)
-- Want minimal operations overhead
+**Context:** Early Phase 11 design called for one AI audit call per paragraph. For a 6-paragraph document that's 6+ calls.
 
 **Options Considered:**
 
-| Framework | Lines of Code | Setup Time | Overhead |
-|-----------|---------------|-----------|----------|
-| Express.js | ~30 | 2 min | Minimal |
-| FastAPI | ~50-100 | 5 min | Light |
-| Django | ~100+ | 15 min | Heavy |
-| NestJS | ~100+ | 15 min | Heavy |
+| Approach | AI Calls | Total Time | Consistency |
+|----------|----------|-----------|------------|
+| One call per paragraph | 6+ | 30–60 s | ⚠️ Variable per call |
+| Batch all paragraphs in one audit call | 1 | 5–10 s | ✅ Consistent |
+| 3-step pipeline (segment → batch audit → rewrite) | 3 | 10–20 s | ✅ Consistent |
 
 **Decision Rationale:**
-1. **Simplicity:** Proxy is very simple (one file)
-2. **Speed:** Express starts instantly
-3. **Familiarity:** Node/JavaScript
-4. **Deployment:** Works anywhere Node runs
+1. **Speed:** 3 calls vs 6+ keeps total time reasonable
+2. **Coherence:** Batch audit call sees all paragraphs together — can evaluate flow and transition quality, not just isolated paragraphs
+3. **Cost:** Fewer tokens overall; batch prompt is more efficient than 6 individual prompts
 
-**Outcome:**
-- ✅ `server/index.mjs` (simple Express setup)
-- ✅ Two routes: `/api/groq`, `/api/gemini`
-- ✅ No database, no ORM, no complex routing
+**Outcome:** `improvement-analyzer.ts` — Step 1 segments, Step 2 batch-audits all paragraphs in one call (numbered `[1]`…`[N]`), Step 3 rewrites only the single weakest paragraph.
 
 ---
 
-## Decision 14: Mock Fallback for Offline Testing
+## Decision 14: Two-Phase Interactive Workflow for Topic Builder (Phase 12)
 
-**Decision:** Provide mock responses when APIs are unavailable (error fallback, not true offline AI).
+**Decision:** Split Topic Builder into two separately invokable workflow functions with a user selection step in between, rather than one end-to-end automated workflow.
 
-**Context:**
-- Real offline AI requires local models (complex)
-- Demo needs to work even if Groq API is down
-- Mock data good enough for testing UI
+**Context:** The desired UX for Phase 12 is:
+1. Generate multiple topic options
+2. **User picks one**
+3. Build a full outline for the selected topic
 
-**Current Implementation:**
-```typescript
-// If Groq API fails → return mock summary
-// Allows UI testing without API
-```
+A single automated workflow can't accommodate user interaction mid-run.
 
-**Future Enhancement (Phase 5):**
-- Integrate local model (Ollama) for true offline AI
-- Would require Docker or standalone binary
-- Out of scope for current hackathon
+**Options Considered:**
+
+| Approach | User Control | UX Complexity | Implementation |
+|----------|-------------|---------------|----------------|
+| One workflow, all automated | ❌ No user choice | Simple | One function |
+| Two workflows + UI state machine | ✅ Full user choice | Medium | Two functions |
+| Streaming + pause | ✅ Yes | High | Complex |
+
+**Decision Rationale:**
+1. **User agency:** Researchers should choose their own topic, not accept whatever the AI picks
+2. **Reusability:** `runTopicGenerationWorkflow` and `runOutlineBuildWorkflow` are independently useful (and independently testable)
+3. **`aiRun` integrity:** Two separate runs make it easy to track which outline belongs to which topic selection decision
+4. **Simplicity:** Two clean functions with clear contracts are easier to maintain than one stateful function with a pause mechanism
+
+**Outcome:** `topic-builder.ts` exports:
+- `runTopicGenerationWorkflow(seed, researchItemId)` → `{ runId, result: { topics[] } }`
+- `runOutlineBuildWorkflow(topic, researchItemId)` → `{ runId, outline[] }`
+
+`TopicBuilder.tsx` owns the state machine: `topics[]` + `selectedTopic` + `outline[]`.
+
+---
+
+## Decision 15: AIWorkflowPanel Reads Steps Dynamically
+
+**Decision:** `AIWorkflowPanel` renders step names from `run.steps[i].name` (read from Dexie), not from a hardcoded `PIPELINE_STEPS` array.
+
+**Context:** Original implementation hardcoded 5 step labels (`['Summarize', 'Extract Actions', 'Categorize', 'Citation Search', 'Generate Outline']`). Phase 9 uses 3 steps with completely different names.
+
+**Problem:** Hardcoded steps would show wrong labels for every new workflow added.
+
+**Decision Rationale:** Each workflow defines its own step names at `aiRun` creation time. The panel should trust the DB, not its own hardcoded list.
+
+**Outcome:** Panel iterates `runSteps.map((dbStep, i) => ...)` and displays `dbStep.name`. Adding a new workflow with any step names automatically displays correctly in the panel with zero panel code changes.
 
 ---
 
 ## Summary: Decision Checklist
 
-| Area | Decision | Rationale |
-|------|----------|-----------|
-| **AI Provider** | Groq primary, Gemini fallback | Free, reliable, fast |
-| **Database** | IndexedDB + Dexie | Offline-first, local |
-| **API Calls** | Express proxy | Security, flexibility |
-| **Deep Analysis** | Multi-step agent | Quality insights |
-| **State** | React hooks | Simple, sufficient |
-| **Styling** | Tailwind CSS | Fast, modern |
-| **Types** | TypeScript strict | Safety, handoff |
-| **Build** | Vite | Speed, DX |
-| **Phases** | Sync in Phase 4 | Focused scope |
-| **UI** | Dual buttons | Clarity, mobile-friendly |
-| **Modal** | Outputs-only | User focus |
-| **Cost** | Free tier only | Hackathon budget |
-| **Backend** | Lightweight Express | Minimal, simple |
-| **Offline** | Mock fallback now | Local AI Phase 5+ |
+| Area | Decision | Phase |
+|------|----------|-------|
+| AI Provider | Groq primary, Gemini fallback | 3 |
+| Database | IndexedDB + Dexie (offline-first) | 2 |
+| AI Proxy | Express.js — keeps keys server-side | 3 |
+| Deep Analysis | Multi-step agent with steps[] tracking | 3 |
+| State | React hooks (no Redux/Zustand) | 3 |
+| Styling | Tailwind v4 + shadcn/ui | 1–8 |
+| Types | TypeScript strict mode | 1 |
+| Build | Vite | 1 |
+| Sync | Supabase outbox pattern (Phase 5) | 5 |
+| Methodology data | Local JSON matrix for offline scoring | 9 |
+| Citation APIs | Browser-direct (no proxy needed) | 10 |
+| Citation format | Pure client-side formatCitation() | 10 |
+| Audit strategy | Batch 3-call pipeline, not per-paragraph | 11 |
+| Topic workflow | Two separate functions + UI state machine | 12 |
+| Panel steps | Dynamic from run.steps[], not hardcoded | 8 |
 
 ---
 
 ## Revision History
 
-| Date | Decision | Change |
-|------|----------|--------|
-| 2026-05-05 | All v1 | Initial documentation |
-
-## How to Update This Document
-
-When making significant decisions:
-1. Add new section with format: `## Decision N: Title`
-2. Include Context, Options, Rationale, Outcome
-3. Update Summary table
-4. Update Revision History
-5. Commit to git with description
+| Date | Version | Change |
+|------|---------|--------|
+| 2026-05-05 | 1.0 | Initial documentation (Decisions 1–14) |
+| 2026-05-06 | 2.0 | Added Decisions 10–15 covering Phases 9–12 |
