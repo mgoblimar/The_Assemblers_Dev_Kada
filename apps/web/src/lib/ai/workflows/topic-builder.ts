@@ -2,6 +2,37 @@ import { db } from '@/lib/db/database'
 import { generateWithGemini, generateWithGroq } from '@/lib/ai/index'
 import { buildTopicPrompt, buildOutlinePrompt } from '@/lib/ai/prompts'
 
+/**
+ * Robustly extract JSON from an AI response string.
+ * Handles: code fences, preamble text, postamble text, and bare JSON.
+ * Tries array extraction first, then object extraction.
+ */
+function extractJSON(raw: string): unknown {
+  // Strip code fences first
+  let s = raw.replace(/```(?:json)?/g, '').trim()
+
+  // Try to find JSON array boundaries [ ... ]
+  const arrStart = s.indexOf('[')
+  const arrEnd = s.lastIndexOf(']')
+  if (arrStart !== -1 && arrEnd > arrStart) {
+    try {
+      return JSON.parse(s.slice(arrStart, arrEnd + 1))
+    } catch { /* fall through to object attempt */ }
+  }
+
+  // Try to find JSON object boundaries { ... }
+  const objStart = s.indexOf('{')
+  const objEnd = s.lastIndexOf('}')
+  if (objStart !== -1 && objEnd > objStart) {
+    try {
+      return JSON.parse(s.slice(objStart, objEnd + 1))
+    } catch { /* fall through */ }
+  }
+
+  // Last resort: parse the whole cleaned string
+  return JSON.parse(s)
+}
+
 export interface Topic {
   id: string
   title: string
@@ -78,7 +109,7 @@ export async function runTopicGenerationWorkflow(
 
     let parsed: unknown
     try {
-      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      parsed = extractJSON(raw)
     } catch {
       await updateStep(0, 'failed', 'Invalid JSON from AI')
       await db.aiRuns.update(runId, { status: 'failed', output: raw.slice(0, 200) })
@@ -157,7 +188,7 @@ export async function runOutlineBuildWorkflow(
 
     let parsed: unknown
     try {
-      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      parsed = extractJSON(raw)
     } catch {
       throw new Error('AI returned an unexpected format for the outline. Please try again.')
     }

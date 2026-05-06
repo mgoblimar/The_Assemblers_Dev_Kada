@@ -2,6 +2,20 @@ import { db } from '@/lib/db/database'
 import { generateWithGemini, generateWithGroq } from '@/lib/ai/index'
 import { buildImprovementPrompt } from '@/lib/ai/prompts'
 
+/** Robustly extract JSON from an AI response that may contain preamble or code fences. */
+function extractJSON(raw: string): unknown {
+  const s = raw.replace(/```(?:json)?/g, '').trim()
+  const arrStart = s.indexOf('['), arrEnd = s.lastIndexOf(']')
+  if (arrStart !== -1 && arrEnd > arrStart) {
+    try { return JSON.parse(s.slice(arrStart, arrEnd + 1)) } catch { /* fall through */ }
+  }
+  const objStart = s.indexOf('{'), objEnd = s.lastIndexOf('}')
+  if (objStart !== -1 && objEnd > objStart) {
+    try { return JSON.parse(s.slice(objStart, objEnd + 1)) } catch { /* fall through */ }
+  }
+  return JSON.parse(s)
+}
+
 export interface ParagraphFeedback {
   text: string
   coherenceScore: number
@@ -76,7 +90,8 @@ export async function runImprovementWorkflow(
 
     try {
       const raw = await callAI(buildImprovementPrompt('segment', text), model)
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = extractJSON(raw) as any
       sectionType = parsed.sectionType ?? 'general'
       paragraphs = Array.isArray(parsed.paragraphs) ? parsed.paragraphs : splitParagraphsOffline(text)
     } catch {
@@ -98,7 +113,8 @@ export async function runImprovementWorkflow(
       try {
         const auditInput = paragraphs.map((p, i) => `[${i + 1}] ${p}`).join('\n\n')
         const raw = await callAI(buildImprovementPrompt('audit', auditInput, sectionType), model)
-        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = extractJSON(raw) as any
         overallScore = typeof parsed.overallScore === 'number' ? parsed.overallScore : 5
         coherenceSummary = parsed.coherenceSummary ?? ''
         paragraphFeedback = Array.isArray(parsed.paragraphFeedback) ? parsed.paragraphFeedback : []
@@ -123,7 +139,8 @@ export async function runImprovementWorkflow(
 
       try {
         const raw = await callAI(buildImprovementPrompt('rewrite', weakest), model)
-        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = extractJSON(raw) as any
         if (parsed.improved) {
           topRewrite = { original: weakest, improved: parsed.improved }
         }
