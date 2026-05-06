@@ -217,7 +217,7 @@ function App() {
             <Button
               size="sm"
               className="h-8 gap-1.5 text-xs font-semibold"
-              onClick={() => { setActiveView('dashboard'); setShowForm(v => !v) }}
+              onClick={() => setShowForm(v => !v)}
             >
               <Plus className="w-3.5 h-3.5" />
               New Research
@@ -309,6 +309,11 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
             {itemCount} item{itemCount !== 1 ? 's' : ''} in your library
           </p>
         </div>
+        {showForm && (
+          <div className="rounded-xl border shadow-sm overflow-hidden">
+            <ResearchForm userId={userId} onItemCreated={onItemCreated} />
+          </div>
+        )}
         <ResearchList
           userId={userId}
           refreshTrigger={refreshTrigger}

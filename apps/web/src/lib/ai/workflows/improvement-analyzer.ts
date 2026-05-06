@@ -159,7 +159,7 @@ export async function runImprovementWorkflow(
       entityType: 'ai_run',
       entityId: runId,
       operation: 'create',
-      payload: await db.aiRuns.get(runId) as Record<string, unknown>,
+      payload: await db.aiRuns.get(runId) as unknown as Record<string, unknown>,
       status: 'pending',
       retryCount: 0,
       createdAt: new Date(),
