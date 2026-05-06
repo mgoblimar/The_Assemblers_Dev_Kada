@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# AIPeer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**AIPeer** is an agentic AI research platform designed to bridge the gap between artificial intelligence and rigorous academic peer review. It serves as an "agentic peer in your pocket," helping scholars and professional researchers organize, analyze, and validate their research libraries with surgical precision.
 
-Currently, two official plugins are available:
+## 🚀 Concept
+The name **AIPeer** represents the perfect synergy of **AI Intelligence** and **Research Peer Review**. While traditional AI tools focus on generation, AIPeer focuses on **validation, critical analysis, and synthesis**, mirroring the role of a highly qualified research peer.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Key Features
+- **Agentic AI Analysis**: Goes beyond summarization to identify methodologies, evaluate evidence, and highlight critical gaps in research papers.
+- **Academic Workflow Panel**: Real-time status tracking of AI agents as they traverse your research library.
+- **Citation Engine**: Automated management and intelligent cross-referencing of sources.
+- **Local-First Architecture**: Built for speed and privacy, with secure cloud synchronization via Supabase.
+- **Topic Builder**: Intelligent synthesis of scattered findings into cohesive knowledge structures.
 
-## React Compiler
+## 🛠️ Tech Stack
+- **Frontend**: React (TypeScript), Vite, Tailwind CSS
+- **Backend/Sync**: Supabase (PostgreSQL, Auth, Realtime)
+- **AI Engine**: Google Gemini 2.0 (Agentic Workflows)
+- **Local Database**: Dexie.js (IndexedDB wrapper)
+- **Icons**: Lucide React
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 📦 Getting Started
 
-## Expanding the ESLint configuration
+### Prerequisites
+- Node.js (v18+)
+- Supabase account
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   - Create a `.env` file based on `.env.example`
+   - Add your Supabase URL, Anon Key, and Gemini API Key.
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📜 License
+© 2026 AIPeer. Developed for the DevKada Hackathon.

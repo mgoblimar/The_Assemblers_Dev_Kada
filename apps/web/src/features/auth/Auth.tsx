@@ -4,12 +4,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { ArrowLeft } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
 
-export function Auth() {
+interface AuthProps {
+  defaultMode?: 'login' | 'signup'
+}
+
+export function Auth({ defaultMode = 'login' }: AuthProps) {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [mode, setMode] = useState<'login' | 'signup'>(defaultMode)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -30,7 +37,14 @@ export function Auth() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50 p-4 relative">
+      <button 
+        onClick={() => navigate('/')}
+        className="absolute top-8 left-8 flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </button>
       <Card className="w-full max-w-md shadow-xl border-none">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold tracking-tight">
@@ -83,12 +97,13 @@ export function Auth() {
         <CardFooter className="flex flex-col gap-4 border-t pt-6">
           <div className="text-center text-sm text-muted-foreground">
             {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
-            <button
+            <Link
+              to={mode === 'login' ? '/signup' : '/login'}
               onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
               className="ml-1 text-primary font-semibold hover:underline"
             >
               {mode === 'login' ? 'Sign Up' : 'Log In'}
-            </button>
+            </Link>
           </div>
         </CardFooter>
       </Card>

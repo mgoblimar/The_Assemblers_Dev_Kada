@@ -16,15 +16,57 @@ import { Session } from '@supabase/supabase-js'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster } from '@/shared/components/ui/toaster'
 import { AnalysisAdvisor } from '@/features/advisor/AnalysisAdvisor'
 import { CitationEngine } from '@/features/citations/CitationEngine'
 import { ImprovementAnalyzer } from '@/features/improve/ImprovementAnalyzer'
 import { TopicBuilder } from '@/features/topics/TopicBuilder'
-import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PanelLeft, PanelRight } from 'lucide-react'
+import { LandingPage } from '@/features/landing/LandingPage'
+import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PanelLeft, PanelRight, Home } from 'lucide-react'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (loading) return null
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage isAuthenticated={!!session} />} />
+        <Route 
+          path="/login" 
+          element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="login" />} 
+        />
+        <Route 
+          path="/signup" 
+          element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="signup" />} 
+        />
+        <Route 
+          path="/dashboard/*" 
+          element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Toaster />
+    </BrowserRouter>
+  )
+}
+
+function Dashboard({ session }: { session: Session }) {
+  const navigate = useNavigate()
   const [online, setOnline] = useState(navigator.onLine)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -42,18 +84,10 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('sidebar-open') !== 'false')
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem('panel-open') !== 'false')
 
-  // Auth
+  // Auth sync
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) fetchRemoteData(session.user.id).then(() => setRefreshTrigger(p => p + 1))
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s)
-      if (s) fetchRemoteData(s.user.id).then(() => setRefreshTrigger(p => p + 1))
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+    if (session) fetchRemoteData(session.user.id).then(() => setRefreshTrigger(p => p + 1))
+  }, [session.user.id])
 
   // Online/offline
   useEffect(() => {
@@ -156,8 +190,6 @@ function App() {
     setItemCount(count)
   }, [])
 
-  if (!session) return <Auth />
-
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* 3-column body */}
@@ -204,6 +236,15 @@ function App() {
               />
             </div>
             <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground"
+              onClick={() => navigate('/')}
+              title="Go to Landing Page"
+            >
+              <Home className="w-3.5 h-3.5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -269,9 +310,6 @@ function App() {
 
       {/* Status bar */}
       <StatusBar itemCount={itemCount} online={online} outboxCount={outboxCount} />
-
-      {/* Toasts */}
-      <Toaster />
 
       {/* Help modal */}
       <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
