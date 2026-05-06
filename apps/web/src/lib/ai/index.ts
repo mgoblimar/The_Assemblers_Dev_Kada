@@ -1,15 +1,28 @@
 import { generateWithGemini } from './gemini'
 import { generateWithGroq } from './groq'
+import { generateWithCerebras } from './cerebras'
 import { db } from '@/lib/db/database'
 import { buildResearchPrompt } from './prompts'
 
-const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
+export type AIProvider = 'gemini' | 'groq' | 'cerebras'
 
-export async function runAIForResearchItem(researchItemId: number, options?: { model?: string, provider?: 'gemini' | 'groq' }) {
+const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
+
+function defaultModel(provider: AIProvider): string {
+  if (provider === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
+  if (provider === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+  return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+}
+
+export function callAIProvider(provider: AIProvider, prompt: string, model: string, maxTokens?: number): Promise<string> {
+  if (provider === 'gemini')   return generateWithGemini(prompt, model, maxTokens)
+  if (provider === 'cerebras') return generateWithCerebras(prompt, model, maxTokens)
+  return generateWithGroq(prompt, model, maxTokens)
+}
+
+export async function runAIForResearchItem(researchItemId: number, options?: { model?: string, provider?: AIProvider }) {
   const provider = options?.provider || DEFAULT_PROVIDER
-  const model = options?.model || (provider === 'gemini' 
-    ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'))
+  const model = options?.model || defaultModel(provider)
 
   const now = new Date()
   
@@ -35,9 +48,7 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
     // update the run with prompt
     await db.aiRuns.update(runId, { prompt })
 
-    const result = provider === 'gemini' 
-      ? await generateWithGemini(prompt, model)
-      : await generateWithGroq(prompt, model)
+    const result = await callAIProvider(provider, prompt, model)
 
     await db.aiRuns.update(runId, { output: result, status: 'completed' })
 
@@ -79,4 +90,4 @@ export async function runAIForResearchItem(researchItemId: number, options?: { m
   }
 }
 
-export { generateWithGemini, generateWithGroq }
+export { generateWithGemini, generateWithGroq, generateWithCerebras }

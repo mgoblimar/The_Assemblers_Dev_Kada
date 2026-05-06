@@ -1,14 +1,18 @@
 import { db } from '../db/database'
-import { generateWithGemini, generateWithGroq } from './index'
+import { callAIProvider, type AIProvider } from './index'
 import { buildAgenticPrompt } from './prompts'
 
-const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
+const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
+
+function defaultModel(provider: AIProvider): string {
+  if (provider === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
+  if (provider === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+  return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+}
 
 export async function runAgenticWorkflow(researchItemId: number, onRunCreated?: (runId: number) => void) {
   const provider = DEFAULT_PROVIDER
-  const model = provider === 'gemini' 
-    ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile')
+  const model = defaultModel(provider)
 
   const now = new Date()
   
@@ -41,7 +45,7 @@ export async function runAgenticWorkflow(researchItemId: number, onRunCreated?: 
       { name: 'Categorize', status: 'pending' },
     ]
 
-    const callAI = provider === 'gemini' ? generateWithGemini : generateWithGroq
+    const callAI = (prompt: string, model: string, maxTokens?: number) => callAIProvider(provider, prompt, model, maxTokens)
 
     // Step 1: Summarize (cap at 1024 — summary outputs are ~200–500 tokens)
     steps[0].status = 'completed'

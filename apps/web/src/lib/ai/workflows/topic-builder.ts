@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/database'
-import { generateWithGemini, generateWithGroq } from '@/lib/ai/index'
+import { callAIProvider, type AIProvider } from '@/lib/ai/index'
 import { buildTopicPrompt, buildOutlinePrompt } from '@/lib/ai/prompts'
 
 /**
@@ -60,16 +60,19 @@ export interface TopicResult {
   offline: boolean
 }
 
-const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
+const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
+function defaultModel(p: AIProvider) {
+  if (p === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
+  if (p === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+  return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+}
 
 export async function runTopicGenerationWorkflow(
   seed: string,
   researchItemId: number
 ): Promise<{ runId: number; result: Pick<TopicResult, 'seed' | 'topics' | 'offline'> }> {
   const provider = DEFAULT_PROVIDER
-  const model = provider === 'gemini'
-    ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile')
+  const model = defaultModel(provider)
 
   const runId = await db.aiRuns.add({
     researchItemId,
@@ -92,7 +95,7 @@ export async function runTopicGenerationWorkflow(
     await db.aiRuns.update(runId, { steps })
   }
 
-  const callAI = provider === 'gemini' ? generateWithGemini : generateWithGroq
+  const callAI = (prompt: string, model: string, maxTokens?: number) => callAIProvider(provider, prompt, model, maxTokens)
 
   try {
     let topics: Topic[] = []
@@ -153,9 +156,7 @@ export async function runOutlineBuildWorkflow(
   researchItemId: number
 ): Promise<{ runId: number; outline: OutlineSection[] }> {
   const provider = DEFAULT_PROVIDER
-  const model = provider === 'gemini'
-    ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile')
+  const model = defaultModel(provider)
 
   const runId = await db.aiRuns.add({
     researchItemId,
@@ -178,7 +179,7 @@ export async function runOutlineBuildWorkflow(
     await db.aiRuns.update(runId, { steps })
   }
 
-  const callAI = provider === 'gemini' ? generateWithGemini : generateWithGroq
+  const callAI = (prompt: string, model: string, maxTokens?: number) => callAIProvider(provider, prompt, model, maxTokens)
 
   try {
     const raw = await callAI(

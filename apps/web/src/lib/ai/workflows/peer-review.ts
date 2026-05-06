@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/database'
-import { generateWithGroq } from '@/lib/ai/index'
+import { callAIProvider, type AIProvider } from '@/lib/ai/index'
 import { buildPeerReviewPrompt } from '@/lib/ai/prompts'
 
 export interface SkepticResult {
@@ -86,18 +86,25 @@ function normalizeSynthesis(raw: unknown): SynthesisResult {
 
 export type PeerReviewPhase = 'skeptic' | 'advocate' | 'synthesis'
 
-const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
+const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
+
+function defaultModel(provider: AIProvider): string {
+  if (provider === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
+  if (provider === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+  return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+}
 
 export async function runPeerReviewWorkflow(
   researchItemId: number,
   text: string,
   onPhaseChange?: (phase: PeerReviewPhase) => void
 ): Promise<{ runId: number; result: PeerReviewResult }> {
-  const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+  const provider = DEFAULT_PROVIDER
+  const model = defaultModel(provider)
 
   const runId = await db.aiRuns.add({
     researchItemId,
-    provider: DEFAULT_PROVIDER,
+    provider,
     model,
     prompt: 'Peer Review',
     output: '',
@@ -125,7 +132,7 @@ export async function runPeerReviewWorkflow(
   try {
     // Step 1: Skeptic
     onPhaseChange?.('skeptic')
-    const skepticRaw = await generateWithGroq(buildPeerReviewPrompt('skeptic', text), model, MAX_TOKENS)
+    const skepticRaw = await callAIProvider(provider, buildPeerReviewPrompt('skeptic', text), model, MAX_TOKENS)
     const skeptic = normalizeSkeptic(extractJSON(skepticRaw))
     await updateStep(0, 'completed', skeptic.verdict)
 
@@ -133,7 +140,7 @@ export async function runPeerReviewWorkflow(
 
     // Step 2: Advocate
     onPhaseChange?.('advocate')
-    const advocateRaw = await generateWithGroq(buildPeerReviewPrompt('advocate', text, skeptic.verdict), model, MAX_TOKENS)
+    const advocateRaw = await callAIProvider(provider, buildPeerReviewPrompt('advocate', text, skeptic.verdict), model, MAX_TOKENS)
     const advocate = normalizeAdvocate(extractJSON(advocateRaw))
     await updateStep(1, 'completed', advocate.verdict)
 
@@ -141,7 +148,7 @@ export async function runPeerReviewWorkflow(
 
     // Step 3: Synthesis
     onPhaseChange?.('synthesis')
-    const synthesisRaw = await generateWithGroq(buildPeerReviewPrompt('synthesis', text, skeptic.verdict, advocate.verdict), model, MAX_TOKENS)
+    const synthesisRaw = await callAIProvider(provider, buildPeerReviewPrompt('synthesis', text, skeptic.verdict, advocate.verdict), model, MAX_TOKENS)
     const synthesis = normalizeSynthesis(extractJSON(synthesisRaw))
     await updateStep(2, 'completed', `${synthesis.overallVerdict} · ${synthesis.consensusScore}/10`)
 

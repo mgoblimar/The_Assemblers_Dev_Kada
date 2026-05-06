@@ -229,6 +229,51 @@ app.post('/api/groq', async (req, res) => {
   }
 })
 
+app.post('/api/cerebras', async (req, res) => {
+  const key = process.env.CEREBRAS_API_KEY
+  if (!key) {
+    console.error('[PROXY] Missing CEREBRAS_API_KEY')
+    return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY' })
+  }
+
+  const MAX_RETRIES = 2
+  let attempt = 0
+
+  while (attempt <= MAX_RETRIES) {
+    try {
+      console.log(`[PROXY] Calling Cerebras model: ${req.body.model} (Attempt ${attempt + 1})`)
+      const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`,
+        },
+        body: JSON.stringify(req.body),
+      })
+
+      console.log(`[PROXY] Cerebras Response status: ${r.status}`)
+
+      if (r.status === 429 && attempt < MAX_RETRIES) {
+        console.warn('[PROXY] Cerebras rate limited (429). Retrying in 2s...')
+        attempt++
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        continue
+      }
+
+      const data = await r.json()
+      return res.status(r.status).json(data)
+    } catch (err) {
+      console.error('[PROXY] Cerebras Error:', err)
+      if (attempt < MAX_RETRIES) {
+        attempt++
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        continue
+      }
+      return res.status(500).json({ error: String(err.message) })
+    }
+  }
+})
+
 // health
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

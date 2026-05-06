@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/database'
-import { generateWithGemini, generateWithGroq } from '@/lib/ai/index'
+import { callAIProvider, type AIProvider } from '@/lib/ai/index'
 import { buildImprovementPrompt } from '@/lib/ai/prompts'
 
 /** Robustly extract JSON from an AI response that may contain preamble or code fences. */
@@ -34,7 +34,12 @@ export interface ImprovementResult {
   offline: boolean
 }
 
-const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
+const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
+function defaultModel(p: AIProvider) {
+  if (p === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
+  if (p === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+  return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+}
 
 function splitParagraphsOffline(text: string): string[] {
   return text
@@ -49,9 +54,7 @@ export async function runImprovementWorkflow(
   researchItemId: number
 ): Promise<{ runId: number; result: ImprovementResult }> {
   const provider = DEFAULT_PROVIDER
-  const model = provider === 'gemini'
-    ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile')
+  const model = defaultModel(provider)
 
   const item = await db.researchItems.get(researchItemId)
   if (!item) throw new Error('Research item not found')
@@ -79,7 +82,7 @@ export async function runImprovementWorkflow(
     await db.aiRuns.update(runId, { steps })
   }
 
-  const callAI = provider === 'gemini' ? generateWithGemini : generateWithGroq
+  const callAI = (prompt: string, model: string, maxTokens?: number) => callAIProvider(provider, prompt, model, maxTokens)
   const text = `${item.title}\n\n${item.sourceText}`
 
   try {

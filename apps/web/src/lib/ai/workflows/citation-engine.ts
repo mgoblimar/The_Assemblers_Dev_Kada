@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/database'
-import { generateWithGemini, generateWithGroq } from '@/lib/ai/index'
+import { callAIProvider, type AIProvider } from '@/lib/ai/index'
 import { buildCitationPrompt } from '@/lib/ai/prompts'
 
 export interface Reference {
@@ -23,7 +23,12 @@ export interface CitationResult {
   offline: boolean
 }
 
-const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
+const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
+function defaultModel(p: AIProvider) {
+  if (p === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
+  if (p === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+  return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
+}
 
 function extractTermsOffline(text: string): string[] {
   const stop = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','have','has','had','do','does','did','will','would','could','should','may','might','this','that','these','those','it','its','we','our','they','their','which','who','what','how','when','where','why','also','been','more','some','such','than','then','there','can','its'])
@@ -119,9 +124,7 @@ export async function runCitationWorkflow(
   researchItemId: number
 ): Promise<{ runId: number; result: CitationResult }> {
   const provider = DEFAULT_PROVIDER
-  const model = provider === 'gemini'
-    ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
-    : (import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile')
+  const model = defaultModel(provider)
 
   const item = await db.researchItems.get(researchItemId)
   if (!item) throw new Error('Research item not found')
@@ -149,7 +152,7 @@ export async function runCitationWorkflow(
     await db.aiRuns.update(runId, { steps })
   }
 
-  const callAI = provider === 'gemini' ? generateWithGemini : generateWithGroq
+  const callAI = (prompt: string, model: string, maxTokens?: number) => callAIProvider(provider, prompt, model, maxTokens)
 
   try {
     const text = `${item.title}\n\n${item.sourceText}`
