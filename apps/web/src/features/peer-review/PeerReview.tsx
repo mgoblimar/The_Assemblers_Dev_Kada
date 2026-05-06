@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { getResearchItems } from '@/lib/db/research-repository'
-import { runPeerReviewWorkflow, type PeerReviewResult } from '@/lib/ai/workflows/peer-review'
+import { runPeerReviewWorkflow, type PeerReviewResult, type PeerReviewPhase } from '@/lib/ai/workflows/peer-review'
 import type { ResearchItem } from '@/lib/db/database'
 import { cn } from '@/lib/utils'
 
@@ -26,7 +26,9 @@ const SEVERITY_COLOR: Record<string, string> = {
   major: 'text-rose-600 bg-rose-50 border-rose-200',
 }
 
-type Phase = 'idle' | 'skeptic' | 'advocate' | 'synthesis' | 'done'
+type UIPhase = 'idle' | PeerReviewPhase | 'done'
+
+const PHASE_STEPS: PeerReviewPhase[] = ['skeptic', 'advocate', 'synthesis']
 
 export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
@@ -35,7 +37,7 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
   const [loadingItems, setLoadingItems] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<PeerReviewResult | null>(null)
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [phase, setPhase] = useState<UIPhase>('idle')
   const [expanded, setExpanded] = useState<'skeptic' | 'advocate' | null>('skeptic')
 
   useEffect(() => {
@@ -56,26 +58,25 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
     setResult(null)
     setPhase('skeptic')
 
-    const t1 = setTimeout(() => setPhase('advocate'), 5000)
-    const t2 = setTimeout(() => setPhase('synthesis'), 10000)
-
     try {
-      const { runId, result: r } = await runPeerReviewWorkflow(selectedItem.id, selectedItem.sourceText)
-      clearTimeout(t1); clearTimeout(t2)
+      const { runId, result: r } = await runPeerReviewWorkflow(
+        selectedItem.id,
+        selectedItem.sourceText,
+        (p) => setPhase(p)  // driven by actual workflow progress, not timers
+      )
       onRunStart(runId, selectedItem.title)
       setResult(r)
       setPhase('done')
       setExpanded('skeptic')
     } catch (err) {
-      clearTimeout(t1); clearTimeout(t2)
-      setError(err instanceof Error ? err.message : 'Peer review failed')
+      setError(err instanceof Error ? err.message : 'Peer review failed. Check your API key and try again.')
       setPhase('idle')
     } finally {
       setLoading(false)
     }
   }
 
-  const phaseOrder: Record<Phase, number> = { idle: -1, skeptic: 0, advocate: 1, synthesis: 2, done: 3 }
+  const phaseIndex = (p: UIPhase) => PHASE_STEPS.indexOf(p as PeerReviewPhase)
 
   return (
     <div className="px-5 py-5 max-w-2xl mx-auto w-full space-y-5">
@@ -122,8 +123,8 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {phase === 'skeptic' && 'Skeptic is analyzing…'}
-                {phase === 'advocate' && 'Advocate is responding…'}
+                {phase === 'skeptic'   && 'Skeptic is analyzing…'}
+                {phase === 'advocate'  && 'Advocate is responding…'}
                 {phase === 'synthesis' && 'Editor is synthesizing…'}
               </>
             ) : (
@@ -137,16 +138,17 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
         </CardContent>
       </Card>
 
-      {loading && (
+      {/* Live phase progress chips */}
+      {(loading || phase === 'done') && (
         <div className="grid grid-cols-3 gap-2">
-          {(['skeptic', 'advocate', 'synthesis'] as const).map((p, i) => {
-            const cur = phaseOrder[phase]
-            const isDone = cur > i
-            const isActive = cur === i
+          {PHASE_STEPS.map((p, i) => {
+            const cur = phaseIndex(phase)
+            const isDone = phase === 'done' || cur > i
+            const isActive = !isDone && cur === i
             return (
               <div key={p} className={cn(
                 'rounded-lg border px-3 py-2 text-center text-xs font-semibold transition-all',
-                isDone && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                isDone   && 'border-emerald-200 bg-emerald-50 text-emerald-700',
                 isActive && 'border-primary/30 bg-primary/5 text-primary',
                 !isDone && !isActive && 'border-muted text-muted-foreground opacity-40'
               )}>
@@ -158,8 +160,10 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
         </div>
       )}
 
+      {/* Results */}
       {result && (
         <div className="space-y-3">
+          {/* Editorial verdict */}
           <Card className="border-2 border-primary/20 bg-primary/5">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -175,12 +179,14 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
                 </span>
                 <span className="text-sm font-black text-primary">{result.synthesis.consensusScore}/10</span>
               </div>
-              <p className="text-sm text-muted-foreground">{result.synthesis.summary}</p>
-              {result.synthesis.priorityActions.length > 0 && (
+              {result.synthesis.summary && (
+                <p className="text-sm text-muted-foreground">{result.synthesis.summary}</p>
+              )}
+              {(result.synthesis.priorityActions ?? []).length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Priority Actions</p>
                   <ul className="space-y-1">
-                    {result.synthesis.priorityActions.map((a, i) => (
+                    {(result.synthesis.priorityActions ?? []).map((a, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-xs">
                         <span className="text-primary font-bold shrink-0">{i + 1}.</span>
                         <span>{a}</span>
@@ -192,13 +198,15 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
             </CardContent>
           </Card>
 
+          {/* Skeptic vs Advocate */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Skeptic card */}
             <Card className="border-rose-200">
               <CardContent className="p-3 space-y-2">
                 <button className="w-full flex items-center gap-2" onClick={() => setExpanded(expanded === 'skeptic' ? null : 'skeptic')}>
                   <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                   <span className="text-xs font-bold text-rose-700 flex-1 text-left">Skeptic</span>
-                  <Badge variant="outline" className={cn('text-[10px] border', SEVERITY_COLOR[result.skeptic.severity ?? 'minor'])}>
+                  <Badge variant="outline" className={cn('text-[10px] border', SEVERITY_COLOR[result.skeptic.severity] ?? 'text-muted-foreground')}>
                     {result.skeptic.severity}
                   </Badge>
                   {expanded === 'skeptic' ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
@@ -207,9 +215,9 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
                 {expanded === 'skeptic' && (
                   <div className="space-y-2 pt-2 border-t border-rose-100">
                     {[
-                      { label: 'Weaknesses', items: result.skeptic.weaknesses },
-                      { label: 'Methodology Gaps', items: result.skeptic.methodologyGaps },
-                      { label: 'Counterarguments', items: result.skeptic.counterarguments },
+                      { label: 'Weaknesses', items: result.skeptic.weaknesses ?? [] },
+                      { label: 'Methodology Gaps', items: result.skeptic.methodologyGaps ?? [] },
+                      { label: 'Counterarguments', items: result.skeptic.counterarguments ?? [] },
                     ].map(({ label, items: list }) => list.length > 0 && (
                       <div key={label}>
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">{label}</p>
@@ -227,6 +235,7 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
               </CardContent>
             </Card>
 
+            {/* Advocate card */}
             <Card className="border-emerald-200">
               <CardContent className="p-3 space-y-2">
                 <button className="w-full flex items-center gap-2" onClick={() => setExpanded(expanded === 'advocate' ? null : 'advocate')}>
@@ -238,9 +247,9 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
                 {expanded === 'advocate' && (
                   <div className="space-y-2 pt-2 border-t border-emerald-100">
                     {[
-                      { label: 'Strengths', items: result.advocate.strengths },
-                      { label: 'Contributions', items: result.advocate.contributions },
-                      { label: 'Rebuttals to Skeptic', items: result.advocate.rebuttals },
+                      { label: 'Strengths', items: result.advocate.strengths ?? [] },
+                      { label: 'Contributions', items: result.advocate.contributions ?? [] },
+                      { label: 'Rebuttals to Skeptic', items: result.advocate.rebuttals ?? [] },
                     ].map(({ label, items: list }) => list.length > 0 && (
                       <div key={label}>
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">{label}</p>

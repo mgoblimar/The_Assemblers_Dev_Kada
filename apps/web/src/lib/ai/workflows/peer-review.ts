@@ -33,10 +33,6 @@ export interface PeerReviewResult {
 
 function extractJSON(raw: string): unknown {
   const s = raw.replace(/```(?:json)?/g, '').trim()
-  const arrStart = s.indexOf('['), arrEnd = s.lastIndexOf(']')
-  if (arrStart !== -1 && arrEnd > arrStart) {
-    try { return JSON.parse(s.slice(arrStart, arrEnd + 1)) } catch { /* fall through */ }
-  }
   const objStart = s.indexOf('{'), objEnd = s.lastIndexOf('}')
   if (objStart !== -1 && objEnd > objStart) {
     try { return JSON.parse(s.slice(objStart, objEnd + 1)) } catch { /* fall through */ }
@@ -44,11 +40,58 @@ function extractJSON(raw: string): unknown {
   return JSON.parse(s)
 }
 
+function toStringArray(val: unknown): string[] {
+  if (Array.isArray(val)) return val.filter(v => typeof v === 'string')
+  return []
+}
+
+function normalizeSkeptic(raw: unknown): SkepticResult {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const severity = r.severity as string
+  return {
+    verdict: typeof r.verdict === 'string' ? r.verdict : 'No verdict provided',
+    weaknesses: toStringArray(r.weaknesses),
+    methodologyGaps: toStringArray(r.methodologyGaps),
+    counterarguments: toStringArray(r.counterarguments),
+    severity: ['minor', 'moderate', 'major'].includes(severity)
+      ? (severity as SkepticResult['severity'])
+      : 'moderate',
+  }
+}
+
+function normalizeAdvocate(raw: unknown): AdvocateResult {
+  const r = (raw ?? {}) as Record<string, unknown>
+  return {
+    verdict: typeof r.verdict === 'string' ? r.verdict : 'No verdict provided',
+    strengths: toStringArray(r.strengths),
+    contributions: toStringArray(r.contributions),
+    rebuttals: toStringArray(r.rebuttals),
+    potential: typeof r.potential === 'string' ? r.potential : '',
+  }
+}
+
+function normalizeSynthesis(raw: unknown): SynthesisResult {
+  const r = (raw ?? {}) as Record<string, unknown>
+  const verdicts = ['Accept', 'Accept with minor revisions', 'Major revisions required', 'Reject and resubmit']
+  const score = Number(r.consensusScore)
+  return {
+    overallVerdict: verdicts.includes(r.overallVerdict as string)
+      ? (r.overallVerdict as string)
+      : 'Accept with minor revisions',
+    consensusScore: Number.isFinite(score) ? Math.min(10, Math.max(1, score)) : 5,
+    priorityActions: toStringArray(r.priorityActions),
+    summary: typeof r.summary === 'string' ? r.summary : '',
+  }
+}
+
+export type PeerReviewPhase = 'skeptic' | 'advocate' | 'synthesis'
+
 const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
 
 export async function runPeerReviewWorkflow(
   researchItemId: number,
-  text: string
+  text: string,
+  onPhaseChange?: (phase: PeerReviewPhase) => void
 ): Promise<{ runId: number; result: PeerReviewResult }> {
   const model = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
 
@@ -76,19 +119,22 @@ export async function runPeerReviewWorkflow(
   }
 
   try {
-    await updateStep(0, 'pending')
+    // Step 1: Skeptic
+    onPhaseChange?.('skeptic')
     const skepticRaw = await generateWithGroq(buildPeerReviewPrompt('skeptic', text), model)
-    const skeptic = extractJSON(skepticRaw) as SkepticResult
+    const skeptic = normalizeSkeptic(extractJSON(skepticRaw))
     await updateStep(0, 'completed', skeptic.verdict)
 
-    await updateStep(1, 'pending')
+    // Step 2: Advocate
+    onPhaseChange?.('advocate')
     const advocateRaw = await generateWithGroq(buildPeerReviewPrompt('advocate', text, skeptic.verdict), model)
-    const advocate = extractJSON(advocateRaw) as AdvocateResult
+    const advocate = normalizeAdvocate(extractJSON(advocateRaw))
     await updateStep(1, 'completed', advocate.verdict)
 
-    await updateStep(2, 'pending')
+    // Step 3: Synthesis
+    onPhaseChange?.('synthesis')
     const synthesisRaw = await generateWithGroq(buildPeerReviewPrompt('synthesis', text, skeptic.verdict, advocate.verdict), model)
-    const synthesis = extractJSON(synthesisRaw) as SynthesisResult
+    const synthesis = normalizeSynthesis(extractJSON(synthesisRaw))
     await updateStep(2, 'completed', `${synthesis.overallVerdict} · ${synthesis.consensusScore}/10`)
 
     const result: PeerReviewResult = { skeptic, advocate, synthesis }
@@ -97,10 +143,7 @@ export async function runPeerReviewWorkflow(
     return { runId, result }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    const current = await db.aiRuns.get(runId)
-    if (current?.status !== 'failed') {
-      await db.aiRuns.update(runId, { status: 'failed', output: msg })
-    }
+    await db.aiRuns.update(runId, { status: 'failed', output: msg })
     throw err
   }
 }
