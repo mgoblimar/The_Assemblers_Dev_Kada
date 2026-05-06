@@ -118,22 +118,30 @@ export async function runPeerReviewWorkflow(
     await db.aiRuns.update(runId, { steps })
   }
 
+  // JSON responses are small — cap tokens to avoid blowing past TPM limits
+  const MAX_TOKENS = 1024
+  const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
+
   try {
     // Step 1: Skeptic
     onPhaseChange?.('skeptic')
-    const skepticRaw = await generateWithGroq(buildPeerReviewPrompt('skeptic', text), model)
+    const skepticRaw = await generateWithGroq(buildPeerReviewPrompt('skeptic', text), model, MAX_TOKENS)
     const skeptic = normalizeSkeptic(extractJSON(skepticRaw))
     await updateStep(0, 'completed', skeptic.verdict)
 
+    await delay(1500)
+
     // Step 2: Advocate
     onPhaseChange?.('advocate')
-    const advocateRaw = await generateWithGroq(buildPeerReviewPrompt('advocate', text, skeptic.verdict), model)
+    const advocateRaw = await generateWithGroq(buildPeerReviewPrompt('advocate', text, skeptic.verdict), model, MAX_TOKENS)
     const advocate = normalizeAdvocate(extractJSON(advocateRaw))
     await updateStep(1, 'completed', advocate.verdict)
 
+    await delay(1500)
+
     // Step 3: Synthesis
     onPhaseChange?.('synthesis')
-    const synthesisRaw = await generateWithGroq(buildPeerReviewPrompt('synthesis', text, skeptic.verdict, advocate.verdict), model)
+    const synthesisRaw = await generateWithGroq(buildPeerReviewPrompt('synthesis', text, skeptic.verdict, advocate.verdict), model, MAX_TOKENS)
     const synthesis = normalizeSynthesis(extractJSON(synthesisRaw))
     await updateStep(2, 'completed', `${synthesis.overallVerdict} · ${synthesis.consensusScore}/10`)
 

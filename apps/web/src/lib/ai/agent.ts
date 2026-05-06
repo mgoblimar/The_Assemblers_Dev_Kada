@@ -43,27 +43,27 @@ export async function runAgenticWorkflow(researchItemId: number, onRunCreated?: 
 
     const callAI = provider === 'gemini' ? generateWithGemini : generateWithGroq
 
-    // Step 1: Summarize
+    // Step 1: Summarize (cap at 1024 — summary outputs are ~200–500 tokens)
     steps[0].status = 'completed'
-    const summary = await callAI(buildAgenticPrompt('summarize', item.sourceText), model)
+    const summary = await callAI(buildAgenticPrompt('summarize', item.sourceText), model, 1024)
     steps[0].output = summary
     await db.aiRuns.update(runId, { steps: [...steps], output: `SUMMARY:\n${summary}` })
 
-    // Brief delay to prevent rate limit bursting
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Delay to stay within TPM limits
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
     // Step 2: Extract Actions
     steps[1].status = 'completed'
-    const actions = await callAI(buildAgenticPrompt('actions', summary), model)
+    const actions = await callAI(buildAgenticPrompt('actions', summary), model, 1024)
     steps[1].output = actions
     await db.aiRuns.update(runId, { steps: [...steps], output: `SUMMARY:\n${summary}\n\nACTIONS:\n${actions}` })
 
-    // Brief delay to prevent rate limit bursting
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Delay to stay within TPM limits
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
     // Step 3: Categorize
     steps[2].status = 'completed'
-    const category = await callAI(buildAgenticPrompt('categorize', summary), model)
+    const category = await callAI(buildAgenticPrompt('categorize', summary), model, 256)
     steps[2].output = category
     
     const combinedOutput = `### 📋 Summary\n${summary}\n\n### 🚀 Action Items\n${actions}\n\n**Category:** ${category}`
