@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ResearchItem, db } from '@/lib/db/database'
 import { getResearchItems } from '@/lib/db/research-repository'
 import { ResearchCard } from './ResearchCard'
@@ -20,33 +20,78 @@ export function ResearchList({ userId, refreshTrigger, analyzingItemId, onAnalyz
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'quantitative' | 'qualitative' | 'mixed'>('all')
+  const countsRunIdRef = useRef(0)
 
   useEffect(() => {
+    let isMounted = true
+
     const load = async () => {
-      setLoading(true)
-      setError(null)
       try {
+        setLoading(true)
+        setError(null)
+
         const data = await getResearchItems(userId)
+        if (!isMounted) return
+
         setItems(data)
         onItemCountChange(data.length)
+      } catch (err) {
+        if (isMounted) {
+          console.error('ResearchList load error:', err)
+          setError(err instanceof Error ? err.message : 'Failed to load research items')
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
 
+    load()
+
+    return () => {
+      isMounted = false
+    }
+  }, [refreshTrigger, userId, onItemCountChange])
+
+  useEffect(() => {
+    let isMounted = true
+    countsRunIdRef.current += 1
+    const runId = countsRunIdRef.current
+
+    const loadCounts = async () => {
+      if (items.length === 0) {
+        setAiRunCounts({})
+        return
+      }
+
+      try {
         const counts: Record<number, number> = {}
         await Promise.all(
-          data.map(async (item) => {
+          items.map(async (item) => {
             if (item.id) {
               counts[item.id] = await db.aiRuns.where('researchItemId').equals(item.id).count()
             }
           })
         )
-        setAiRunCounts(counts)
+
+        if (isMounted && runId === countsRunIdRef.current) {
+          setAiRunCounts(counts)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load research items')
-      } finally {
-        setLoading(false)
+        if (isMounted && runId === countsRunIdRef.current) {
+          console.error('ResearchList count error:', err)
+          setAiRunCounts({})
+        }
       }
     }
-    load()
-  }, [refreshTrigger, onItemCountChange, userId])
+
+    loadCounts()
+
+    return () => {
+      isMounted = false
+    }
+  }, [items])
 
   if (loading) {
     return (

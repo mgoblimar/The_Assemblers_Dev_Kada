@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import { ResearchForm } from '@/features/research/ResearchForm'
 import { ResearchList } from '@/features/research/ResearchList'
@@ -26,7 +26,8 @@ import { PeerReview } from '@/features/peer-review/PeerReview'
 import { AskLibrary } from '@/features/library/AskLibrary'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { ResearchDetailsModal } from '@/features/research/ResearchDetailsModal'
-import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PanelLeft, PanelRight, Home } from 'lucide-react'
+import { Search, Plus, Trash2, PanelLeft, PanelRight, Home } from 'lucide-react'
+import { DashboardOverview } from '@/features/layout/DashboardOverview'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -73,6 +74,7 @@ function Dashboard({ session }: { session: Session }) {
   const [online, setOnline] = useState(navigator.onLine)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
+    const isSyncingRef = useRef(false)
   const [lastSynced, setLastSynced] = useState('not synced')
   const [activeView, setActiveView] = useState<ActiveView>('dashboard')
   const [showForm, setShowForm] = useState(false)
@@ -91,8 +93,9 @@ function Dashboard({ session }: { session: Session }) {
 
   // Auth sync
   useEffect(() => {
-    if (session) fetchRemoteData(session.user.id).then(() => setRefreshTrigger(p => p + 1))
-  }, [session.user.id])
+    if (!session) return
+    fetchRemoteData(session.user.id).then(() => setRefreshTrigger(p => p + 1))
+  }, [session])
 
   // Online/offline
   useEffect(() => {
@@ -103,10 +106,26 @@ function Dashboard({ session }: { session: Session }) {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
+  const triggerSync = useCallback(async (force = false) => {
+    if (isSyncingRef.current || !session) return
+    isSyncingRef.current = true
+    setIsSyncing(true)
+    try {
+      await processOutbox(force)
+      setRefreshTrigger(p => p + 1)
+      setLastSynced(`synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
+    } catch {
+      /* no-op */
+    } finally {
+      isSyncingRef.current = false
+      setIsSyncing(false)
+    }
+  }, [session])
+
   // Auto-sync when online
   useEffect(() => {
     if (session && online) triggerSync()
-  }, [session?.user?.id, online])
+  }, [online, session, triggerSync])
 
   // Outbox count
   useEffect(() => {
@@ -133,20 +152,6 @@ function Dashboard({ session }: { session: Session }) {
       localStorage.setItem('panel-open', String(next))
       return next
     })
-  }
-
-  const triggerSync = async (force = false) => {
-    if (isSyncing || !session) return
-    setIsSyncing(true)
-    try {
-      await processOutbox(force)
-      setRefreshTrigger(p => p + 1)
-      setLastSynced(`synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
-    } catch {
-      /* no-op */
-    } finally {
-      setIsSyncing(false)
-    }
   }
 
   const handleAnalyze = async (item: ResearchItem) => {
@@ -297,6 +302,7 @@ function Dashboard({ session }: { session: Session }) {
               activeView={activeView}
               showForm={showForm}
               onItemCreated={handleItemCreated}
+              onToggleForm={() => setShowForm(v => !v)}
               refreshTrigger={refreshTrigger}
               analyzingItemId={analyzingItemId}
               onAnalyze={handleAnalyze}
@@ -306,6 +312,8 @@ function Dashboard({ session }: { session: Session }) {
               itemCount={itemCount}
               aiRunCount={aiRunCount}
               citationCount={citationCount}
+              onNavigateToView={setActiveView}
+              onTogglePanel={togglePanel}
             />
           </div>
         </div>
@@ -343,6 +351,7 @@ interface MainContentProps {
   activeView: ActiveView
   showForm: boolean
   onItemCreated: () => void
+  onToggleForm: () => void
   refreshTrigger: number
   analyzingItemId: number | null
   onAnalyze: (item: ResearchItem) => void
@@ -352,9 +361,11 @@ interface MainContentProps {
   itemCount: number
   aiRunCount: number
   citationCount: number
+  onNavigateToView: (view: ActiveView) => void
+  onTogglePanel: () => void
 }
 
-function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount }: MainContentProps) {
+function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount, onNavigateToView, onTogglePanel }: MainContentProps) {
   if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} userId={userId} />
   if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} userId={userId} />
   if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} userId={userId} />
@@ -389,51 +400,22 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
   }
 
   return (
-    <div className="px-5 py-5 space-y-5 max-w-2xl mx-auto w-full">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {itemCount} item{itemCount !== 1 ? 's' : ''} in your local database
-        </p>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Research Items" value={itemCount} icon={Database} />
-        <StatCard label="AI Runs" value={aiRunCount} icon={BarChart3} />
-        <StatCard label="Citations" value={citationCount} icon={Bookmark} />
-      </div>
-
-      {/* Form toggle */}
-      {showForm && (
-        <div className="rounded-xl border shadow-sm overflow-hidden">
-          <ResearchForm userId={userId} onItemCreated={onItemCreated} />
-        </div>
-      )}
-
-      {/* List */}
-      <ResearchList
-        userId={userId}
-        refreshTrigger={refreshTrigger}
-        analyzingItemId={analyzingItemId}
-        onAnalyze={onAnalyze}
-        onViewDetails={onViewDetails}
-        onItemCountChange={onItemCountChange}
-      />
-    </div>
-  )
-}
-
-function StatCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
-  return (
-    <div className="rounded-xl border bg-card p-3 flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <Icon className="w-4 h-4 text-muted-foreground" />
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs text-muted-foreground font-medium">{label}</p>
-    </div>
+    <DashboardOverview
+      userId={userId}
+      itemCount={itemCount}
+      aiRunCount={aiRunCount}
+      citationCount={citationCount}
+      showForm={showForm}
+      onItemCreated={onItemCreated}
+      onToggleForm={onToggleForm}
+      onNavigateToView={onNavigateToView}
+      onTogglePanel={onTogglePanel}
+      onAnalyze={onAnalyze}
+      onViewDetails={onViewDetails}
+      analyzingItemId={analyzingItemId}
+      refreshTrigger={refreshTrigger}
+      onItemCountChange={onItemCountChange}
+    />
   )
 }
 

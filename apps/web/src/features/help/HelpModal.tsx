@@ -1,19 +1,19 @@
 import { useState } from 'react'
-import { HelpCircle, X, LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
-import { Button } from '@/shared/components/ui/button'
+import { HelpCircle, LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { Badge } from '@/shared/components/ui/badge'
+import { Dialog, DialogContent, DialogTitle } from '@/shared/components/ui/dialog'
 
 const SECTIONS = [
   {
     icon: LayoutDashboard,
     title: 'Dashboard',
-    description: 'Your research command center. View stats (total items, AI runs, citations), add new research, and analyze items with the AI pipeline.',
-    tips: ['Click "New Research" to add an item', 'Click "Analyze" on any card to start an AI workflow', 'Watch the AI Analysis panel on the right for live step progress'],
+    description: 'Your guided overview. See the research flow, jump to the next best action, and add a new research input without leaving the dashboard.',
+    tips: ['Use the flow cards to move from input to analysis and beyond', 'Click "New Research" to capture notes, links, or documents', 'Open My Research when you want the full item library and filters'],
   },
   {
     icon: FolderOpen,
     title: 'My Research',
-    description: 'Your full research library. Browse, filter, and manage all your research items.',
+    description: 'Your full research library. Browse, filter, and manage all of your research items in one place.',
     tips: ['Filter by research type (Quantitative, Qualitative, Mixed)', 'Click any card title to view full details', 'Use the search bar to find items quickly'],
   },
   {
@@ -51,18 +51,12 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
   const [expanded, setExpanded] = useState<string | null>(null)
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-background rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-          <div className="flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold">Help & Feature Guide</h2>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8">
-            <X className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center gap-2 px-6 py-4 border-b shrink-0 pr-14">
+          <HelpCircle className="w-5 h-5 text-primary" />
+          <DialogTitle className="text-lg font-bold">Help & Feature Guide</DialogTitle>
         </div>
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
@@ -112,7 +106,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
           <span className="text-xs text-muted-foreground">ResearchAI · Phases 1–12 complete</span>
           <Badge variant="secondary" className="text-xs">v2.0</Badge>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

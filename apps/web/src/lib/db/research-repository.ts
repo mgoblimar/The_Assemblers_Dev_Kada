@@ -35,11 +35,11 @@ export async function createResearchItem(
 
 export async function getResearchItems(userId?: string): Promise<ResearchItem[]> {
   if (userId) {
-    return db.researchItems
+    const items = await db.researchItems
       .where('userId')
       .equals(userId)
-      .reverse()
-      .sortBy('createdAt')
+      .toArray()
+    return items.reverse()
   }
   return db.researchItems.orderBy('createdAt').reverse().toArray()
 }

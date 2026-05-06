@@ -1,4 +1,4 @@
-const DEFAULT_CEREBRAS_MODEL = import.meta.env.VITE_CEREBRAS_MODEL || 'llama-3.3-70b'
+const DEFAULT_CEREBRAS_MODEL = import.meta.env.VITE_CEREBRAS_MODEL || 'llama3.3-70b'
 
 export async function generateWithCerebras(prompt: string, model = DEFAULT_CEREBRAS_MODEL, maxTokens = 4096) {
   const body = {
