@@ -4,9 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { AIRun, ResearchItem, db } from '@/lib/db/database'
 import { getResearchItems, getAIRunsForItem } from '@/lib/db/research-repository'
 import { ResearchCard } from './ResearchCard'
-import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
-import { Button } from '@/shared/components/ui/button'
 import { FileText, Loader2, Sparkles, Brain, MessageSquare, History } from 'lucide-react'
 import {
   Dialog,
@@ -117,6 +115,20 @@ export function ResearchList({ userId, refreshTrigger, activeRunId, onAnalyze, o
     { key: 'mixed',        label: 'Mixed' },
   ] as const
 
+  function detectItemType(title: string, text: string): 'quantitative' | 'qualitative' | 'mixed' | 'other' {
+    const s = (title + ' ' + text).toLowerCase()
+    const quant = /\b(quantitative|regression|anova|correlation|survey|statistics|coefficient|p-value|sample size|hypothesis test)\b/.test(s)
+    const qual  = /\b(qualitative|thematic|narrative|interview|ethnograph|grounded theory|discourse|content analysis)\b/.test(s)
+    if (quant && qual) return 'mixed'
+    if (quant) return 'quantitative'
+    if (qual)  return 'qualitative'
+    return 'other'
+  }
+
+  const filteredItems = filter === 'all'
+    ? items
+    : items.filter(item => detectItemType(item.title, item.sourceText) === filter)
+
   return (
     <div className="flex flex-col gap-4">
       {/* Filter tabs */}
@@ -136,13 +148,21 @@ export function ResearchList({ userId, refreshTrigger, activeRunId, onAnalyze, o
         ))}
         <div className="flex-1" />
         <Badge variant="secondary" className="text-xs font-semibold">
-          {items.length} items
+          {filteredItems.length}{filter !== 'all' ? ` / ${items.length}` : ''} item{items.length !== 1 ? 's' : ''}
         </Badge>
       </div>
 
+      {/* Empty filtered state */}
+      {filteredItems.length === 0 && (
+        <div className="rounded-xl border-2 border-dashed py-10 flex flex-col items-center gap-2 text-center px-6">
+          <FileText className="w-6 h-6 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">No {filter} research items found.</p>
+        </div>
+      )}
+
       {/* Cards */}
       <div className="flex flex-col gap-3">
-        {items.map((item) => (
+        {filteredItems.map((item) => (
           <ResearchCard
             key={item.id}
             item={item}

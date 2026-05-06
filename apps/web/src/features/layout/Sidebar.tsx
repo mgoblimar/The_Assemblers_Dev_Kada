@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, BrainCircuit, LogOut } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, BrainCircuit, LogOut, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/shared/components/ui/button'
 
@@ -13,6 +13,7 @@ interface SidebarProps {
   onViewChange: (view: ActiveView) => void
   onLogout: () => void
   onSync: () => void
+  onHelp: () => void
 }
 
 const NAV_ITEMS: { view: ActiveView; icon: React.ElementType; label: string; phase?: string }[] = [
@@ -24,7 +25,7 @@ const NAV_ITEMS: { view: ActiveView; icon: React.ElementType; label: string; pha
   { view: 'topics',     icon: Lightbulb,        label: 'Topic Builder',    phase: '12' },
 ]
 
-export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onViewChange, onLogout, onSync }: SidebarProps) {
+export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onViewChange, onLogout, onSync, onHelp }: SidebarProps) {
   const initials = email.substring(0, 2).toUpperCase()
 
   return (
@@ -72,6 +73,15 @@ export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onVi
             )}
           </button>
         ))}
+
+        {/* Help button */}
+        <button
+          onClick={onHelp}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full text-left text-muted-foreground hover:bg-muted hover:text-foreground mt-1"
+        >
+          <HelpCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1 truncate">Help & Guide</span>
+        </button>
       </nav>
 
       {/* User block */}

@@ -332,6 +332,72 @@ A research tool that is **AI and agentic powered**, works **offline-first** (via
 
 ---
 
+## Phase 13 Fixes & Additions
+
+### ✅ Fix: Dashboard AI Runs & Citations Counters
+**Phase:** 13  
+Both stat cards now display live counts from Dexie:
+- AI Runs = `db.aiRuns.count()` (total pipeline invocations)
+- Citations = `db.aiRuns.where('prompt').equals('Citation Engine').count()`
+Updated on every `refreshTrigger` change.
+
+---
+
+### ✅ Fix: My Research Filter Now Functional
+**Phase:** 13  
+The filter chips (All / Quantitative / Qualitative / Mixed) now actually filter the displayed item list. `filteredItems` is derived using `detectItemType()` before rendering. An empty-state UI shows when no items match the selected filter.
+
+---
+
+### ✅ Fix: Dropdown Data Mismatch
+**Phase:** 13  
+All 4 feature panels (Analysis Advisor, Citations, Improve Writing, Topic Builder) now accept a `userId?: string` prop and pass it to `getResearchItems(userId)`. This ensures dropdowns show only the current user's items — matching the Dashboard's research list.
+
+---
+
+### ✅ Fix: Topic Builder Now Functional
+**Phase:** 13  
+Root cause was the dropdown showing wrong items (userId mismatch, now fixed). The topic generation and outline building workflows were already correctly implemented.
+
+---
+
+### ✅ Feature: PDF Upload
+**Phase:** 13  
+`ResearchForm` now includes a "PDF" button that opens a file picker. On selection:
+- File is read as `ArrayBuffer`
+- `extractTextFromPdfBytes()` performs heuristic BT/ET text extraction
+- Extracted text fills the source text area; filename fills the title field
+- Works for text-embedded PDFs; shows error for scanned/image PDFs
+
+---
+
+### ✅ Feature: Google Docs Integration
+**Phase:** 13  
+A "Google Doc" button in `ResearchForm` prompts for a share URL. The URL is converted:
+`/document/d/ID/edit` → `/document/d/ID/pub?output=txt`
+Then passed to the existing `/api/scrape` Puppeteer endpoint for text extraction. Works for publicly shared documents.
+
+---
+
+### ✅ Feature: Help Section
+**Phase:** 13  
+`HelpModal` component accessible via HelpCircle button in the sidebar. Contains:
+- Accordion sections for all 6 app views (Dashboard, My Research, Advisor, Citations, Improve, Topics)
+- Each section: description + 3 usage tips
+- FAQ block
+- Version footer
+
+---
+
+### ✅ Feature: Sidebar & AI Panel Toggle Buttons
+**Phase:** 13  
+Two toggle buttons in the top bar:
+- **Left:** `PanelLeft` icon hides/shows the sidebar
+- **Right:** `PanelRight` icon (desktop only) hides/shows the AI Analysis panel
+Both persist state via `localStorage` (`sidebar-open`, `panel-open` keys).
+
+---
+
 ## Known Limitations
 
 1. Gemini fallback requires active billing on Google Cloud account

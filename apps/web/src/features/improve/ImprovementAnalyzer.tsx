@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 
 interface ImprovementAnalyzerProps {
   onRunStart: (runId: number, title: string) => void
+  userId?: string
 }
 
 function scoreColor(score: number): string {
@@ -36,7 +37,7 @@ const SECTION_LABELS: Record<string, string> = {
   general:           'General',
 }
 
-export function ImprovementAnalyzer({ onRunStart }: ImprovementAnalyzerProps) {
+export function ImprovementAnalyzer({ onRunStart, userId }: ImprovementAnalyzerProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
@@ -46,10 +47,10 @@ export function ImprovementAnalyzer({ onRunStart }: ImprovementAnalyzerProps) {
   const [loadingItems, setLoadingItems] = useState(true)
 
   useEffect(() => {
-    getResearchItems()
+    getResearchItems(userId)
       .then(data => { setItems(data); if (data[0]?.id) setSelectedId(data[0].id) })
       .finally(() => setLoadingItems(false))
-  }, [])
+  }, [userId])
 
   // Load cached result
   useEffect(() => {

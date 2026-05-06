@@ -6,6 +6,7 @@ import { Sidebar, type ActiveView } from '@/features/layout/Sidebar'
 import { AIWorkflowPanel } from '@/features/layout/AIWorkflowPanel'
 import { StatusBar } from '@/features/layout/StatusBar'
 import { Auth } from '@/features/auth/Auth'
+import { HelpModal } from '@/features/help/HelpModal'
 import { processOutbox, fetchRemoteData } from '@/lib/sync/outbox-processor'
 import { supabase } from '@/lib/sync/supabase'
 import { runAgenticWorkflow } from '@/lib/ai/agent'
@@ -14,13 +15,13 @@ import type { AIRun, ResearchItem } from '@/lib/db/database'
 import { Session } from '@supabase/supabase-js'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { Badge } from '@/shared/components/ui/badge'
+
 import { Toaster } from '@/shared/components/ui/toaster'
 import { AnalysisAdvisor } from '@/features/advisor/AnalysisAdvisor'
 import { CitationEngine } from '@/features/citations/CitationEngine'
 import { ImprovementAnalyzer } from '@/features/improve/ImprovementAnalyzer'
 import { TopicBuilder } from '@/features/topics/TopicBuilder'
-import { Search, Plus, Database, Trash2, BarChart3, Bookmark, Construction } from 'lucide-react'
+import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PanelLeft, PanelRight } from 'lucide-react'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -35,6 +36,11 @@ function App() {
   const [activeRunTitle, setActiveRunTitle] = useState<string | null>(null)
   const [itemCount, setItemCount] = useState(0)
   const [outboxCount, setOutboxCount] = useState(0)
+  const [aiRunCount, setAiRunCount] = useState(0)
+  const [citationCount, setCitationCount] = useState(0)
+  const [showHelp, setShowHelp] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('sidebar-open') !== 'false')
+  const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem('panel-open') !== 'false')
 
   // Auth
   useEffect(() => {
@@ -67,6 +73,28 @@ function App() {
   useEffect(() => {
     db.outbox.where('status').equals('pending').count().then(setOutboxCount)
   }, [refreshTrigger])
+
+  // AI run counts
+  useEffect(() => {
+    db.aiRuns.count().then(setAiRunCount)
+    db.aiRuns.where('prompt').equals('Citation Engine').count().then(setCitationCount)
+  }, [refreshTrigger])
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => {
+      const next = !prev
+      localStorage.setItem('sidebar-open', String(next))
+      return next
+    })
+  }
+
+  const togglePanel = () => {
+    setPanelOpen(prev => {
+      const next = !prev
+      localStorage.setItem('panel-open', String(next))
+      return next
+    })
+  }
 
   const triggerSync = async (force = false) => {
     if (isSyncing || !session) return
@@ -134,24 +162,38 @@ function App() {
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* 3-column body */}
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar — hidden on mobile */}
-        <div className="hidden md:flex">
-          <Sidebar
-            email={session.user.email ?? ''}
-            online={online}
-            isSyncing={isSyncing}
-            lastSynced={lastSynced}
-            activeView={activeView}
-            onViewChange={setActiveView}
-            onLogout={() => supabase.auth.signOut()}
-            onSync={() => triggerSync(true)}
-          />
-        </div>
+        {/* Sidebar — hidden on mobile, togglable on desktop */}
+        {sidebarOpen && (
+          <div className="hidden md:flex">
+            <Sidebar
+              email={session.user.email ?? ''}
+              online={online}
+              isSyncing={isSyncing}
+              lastSynced={lastSynced}
+              activeView={activeView}
+              onViewChange={setActiveView}
+              onLogout={() => supabase.auth.signOut()}
+              onSync={() => triggerSync(true)}
+              onHelp={() => setShowHelp(true)}
+            />
+          </div>
+        )}
 
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top bar */}
-          <div className="h-14 border-b flex items-center gap-3 px-4 shrink-0 bg-background/80 backdrop-blur-md">
+          <div className="h-14 border-b flex items-center gap-2 px-3 shrink-0 bg-background/80 backdrop-blur-md">
+            {/* Sidebar toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground shrink-0"
+              onClick={toggleSidebar}
+              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            >
+              <PanelLeft className="w-4 h-4" />
+            </Button>
+
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
@@ -180,6 +222,17 @@ function App() {
               <Plus className="w-3.5 h-3.5" />
               New Research
             </Button>
+
+            {/* AI panel toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-muted-foreground hover:text-foreground shrink-0 hidden lg:flex"
+              onClick={togglePanel}
+              title={panelOpen ? 'Close AI panel' : 'Open AI panel'}
+            >
+              <PanelRight className="w-4 h-4" />
+            </Button>
           </div>
 
           {/* Scrollable content */}
@@ -195,26 +248,33 @@ function App() {
               onRunStart={(runId, title) => { setActiveRunId(runId); setActiveRunTitle(title) }}
               onItemCountChange={handleItemCountChange}
               itemCount={itemCount}
+              aiRunCount={aiRunCount}
+              citationCount={citationCount}
             />
           </div>
         </div>
 
-        {/* AI panel — hidden on mobile */}
-        <div className="hidden lg:flex">
-          <AIWorkflowPanel
-            runId={activeRunId}
-            itemTitle={activeRunTitle}
-            onCancel={() => { setActiveRunId(null); setActiveRunTitle(null) }}
-            onViewReport={handleViewReport}
-          />
-        </div>
+        {/* AI panel — hidden on mobile, togglable on desktop */}
+        {panelOpen && (
+          <div className="hidden lg:flex">
+            <AIWorkflowPanel
+              runId={activeRunId}
+              itemTitle={activeRunTitle}
+              onCancel={() => { setActiveRunId(null); setActiveRunTitle(null) }}
+              onViewReport={handleViewReport}
+            />
+          </div>
+        )}
       </div>
 
       {/* Status bar */}
       <StatusBar itemCount={itemCount} online={online} outboxCount={outboxCount} />
-      
+
       {/* Toasts */}
       <Toaster />
+
+      {/* Help modal */}
+      <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   )
 }
@@ -230,13 +290,35 @@ interface MainContentProps {
   onRunStart: (runId: number, title: string) => void
   onItemCountChange: (count: number) => void
   itemCount: number
+  aiRunCount: number
+  citationCount: number
 }
 
-function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onRunStart, onItemCountChange, itemCount }: MainContentProps) {
-  if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} />
-  if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} />
-  if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} />
-  if (activeView === 'topics')    return <TopicBuilder onRunStart={onRunStart} />
+function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount }: MainContentProps) {
+  if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} userId={userId} />
+  if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} userId={userId} />
+  if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} userId={userId} />
+  if (activeView === 'topics')    return <TopicBuilder onRunStart={onRunStart} userId={userId} />
+
+  if (activeView === 'research') {
+    return (
+      <div className="px-5 py-5 space-y-5 max-w-2xl mx-auto w-full">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">My Research</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {itemCount} item{itemCount !== 1 ? 's' : ''} in your library
+          </p>
+        </div>
+        <ResearchList
+          userId={userId}
+          refreshTrigger={refreshTrigger}
+          activeRunId={activeRunId}
+          onAnalyze={onAnalyze}
+          onItemCountChange={onItemCountChange}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="px-5 py-5 space-y-5 max-w-2xl mx-auto w-full">
@@ -251,8 +333,8 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Research Items" value={itemCount} icon={Database} />
-        <StatCard label="AI Runs" value="—" icon={BarChart3} />
-        <StatCard label="Citations" value="—" icon={Bookmark} phase="10" />
+        <StatCard label="AI Runs" value={aiRunCount} icon={BarChart3} />
+        <StatCard label="Citations" value={citationCount} icon={Bookmark} />
       </div>
 
       {/* Form toggle */}
@@ -274,36 +356,14 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
   )
 }
 
-function StatCard({ label, value, icon: Icon, phase }: { label: string; value: string | number; icon: React.ElementType; phase?: string }) {
+function StatCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
   return (
     <div className="rounded-xl border bg-card p-3 flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <Icon className="w-4 h-4 text-muted-foreground" />
-        {phase && <Badge variant="secondary" className="text-[9px] h-4 px-1.5">P{phase}</Badge>}
       </div>
       <p className="text-2xl font-bold">{value}</p>
       <p className="text-xs text-muted-foreground font-medium">{label}</p>
-    </div>
-  )
-}
-
-function ComingSoon({ icon: Icon, title, phase, desc }: { icon: React.ElementType; title: string; phase: string; desc: string }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 py-20 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center">
-        <Icon className="w-6 h-6 text-primary/50" />
-      </div>
-      <div className="space-y-1">
-        <div className="flex items-center justify-center gap-2">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <Badge variant="secondary" className="text-xs">Phase {phase}</Badge>
-        </div>
-        <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">{desc}</p>
-      </div>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 font-medium">
-        <Construction className="w-3.5 h-3.5" />
-        Coming soon
-      </div>
     </div>
   )
 }

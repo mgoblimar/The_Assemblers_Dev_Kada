@@ -13,6 +13,7 @@ type CitationStyle = 'apa7' | 'mla9' | 'chicago17'
 
 interface CitationEngineProps {
   onRunStart: (runId: number, title: string) => void
+  userId?: string
 }
 
 // ── Citation formatters ──────────────────────────────────────────────────────
@@ -93,7 +94,7 @@ const STYLE_LABELS: Record<CitationStyle, string> = {
   chicago17: 'Chicago 17',
 }
 
-export function CitationEngine({ onRunStart }: CitationEngineProps) {
+export function CitationEngine({ onRunStart, userId }: CitationEngineProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [style, setStyle] = useState<CitationStyle>('apa7')
@@ -106,10 +107,10 @@ export function CitationEngine({ onRunStart }: CitationEngineProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
-    getResearchItems()
+    getResearchItems(userId)
       .then(data => { setItems(data); if (data[0]?.id) setSelectedId(data[0].id) })
       .finally(() => setLoadingItems(false))
-  }, [])
+  }, [userId])
 
   // Load cached result for selected item
   useEffect(() => {

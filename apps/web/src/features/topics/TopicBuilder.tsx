@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 
 interface TopicBuilderProps {
   onRunStart: (runId: number, title: string) => void
+  userId?: string
 }
 
 function ScoreBar({ value, color }: { value: number; color: string }) {
@@ -34,7 +35,7 @@ const CHAPTER_ICONS: Record<string, string> = {
   Methodology: '🔬', Results: '📊', Discussion: '💬', Conclusion: '🏁',
 }
 
-export function TopicBuilder({ onRunStart }: TopicBuilderProps) {
+export function TopicBuilder({ onRunStart, userId }: TopicBuilderProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [seed, setSeed] = useState('')
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null)
@@ -49,7 +50,7 @@ export function TopicBuilder({ onRunStart }: TopicBuilderProps) {
   const [loadingItems, setLoadingItems] = useState(true)
 
   useEffect(() => {
-    getResearchItems()
+    getResearchItems(userId)
       .then(data => {
         setItems(data)
         if (data[0]?.id) {
@@ -58,7 +59,7 @@ export function TopicBuilder({ onRunStart }: TopicBuilderProps) {
         }
       })
       .finally(() => setLoadingItems(false))
-  }, [])
+  }, [userId])
 
   const handleGenerateTopics = async () => {
     if (!seed.trim()) return

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 
 interface AnalysisAdvisorProps {
   onRunStart: (runId: number, title: string) => void
+  userId?: string
 }
 
 const COMPLEXITY_COLOR: Record<string, string> = {
@@ -25,7 +26,7 @@ const PARADIGM_COLOR: Record<string, string> = {
   mixed:        'bg-amber-50 text-amber-700 border-amber-200',
 }
 
-export function AnalysisAdvisor({ onRunStart }: AnalysisAdvisorProps) {
+export function AnalysisAdvisor({ onRunStart, userId }: AnalysisAdvisorProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
@@ -36,10 +37,10 @@ export function AnalysisAdvisor({ onRunStart }: AnalysisAdvisorProps) {
   const [loadingItems, setLoadingItems] = useState(true)
 
   useEffect(() => {
-    getResearchItems()
+    getResearchItems(userId)
       .then(data => { setItems(data); if (data[0]?.id) setSelectedId(data[0].id) })
       .finally(() => setLoadingItems(false))
-  }, [])
+  }, [userId])
 
   // Load cached advisor result for selected item
   useEffect(() => {
