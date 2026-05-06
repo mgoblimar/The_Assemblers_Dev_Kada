@@ -6,7 +6,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
 import { toast } from '@/shared/components/ui/use-toast'
-import { Sparkles, Plus, Database, Loader2, FileText, ExternalLink, X } from 'lucide-react'
+import { Sparkles, Plus, Database, Loader2, FileText, ExternalLink, X, Mic, MicOff } from 'lucide-react'
 
 interface ResearchFormProps {
   userId?: string
@@ -49,7 +49,42 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
   const [scraping, setScraping] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [attachedFile, setAttachedFile] = useState<{ name: string; type: 'pdf' | 'gdoc' } | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
+
+  const handleVoiceNote = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop()
+      setIsRecording(false)
+      return
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) {
+      setError('Voice input is not supported in this browser. Try Chrome.')
+      return
+    }
+    const recognition = new SR()
+    recognition.continuous = true
+    recognition.interimResults = false
+    recognition.lang = 'en-US'
+    recognitionRef.current = recognition
+    recognition.onstart = () => setIsRecording(true)
+    recognition.onend = () => setIsRecording(false)
+    recognition.onerror = () => { setIsRecording(false); setError('Voice recognition failed. Please try again.') }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (e: any) => {
+      const transcript = Array.from(e.results as ArrayLike<{ 0: { transcript: string } }>)
+        .map((r) => r[0].transcript)
+        .join(' ')
+      setSourceText(prev => prev ? `${prev} ${transcript}` : transcript)
+      setAttachedFile(null)
+    }
+    setError(null)
+    recognition.start()
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -269,6 +304,18 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
                 >
                   <ExternalLink className="w-3 h-3" />
                   Google Doc
+                </Button>
+                <Button
+                  type="button"
+                  variant={isRecording ? 'destructive' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={handleVoiceNote}
+                  disabled={loading}
+                  title={isRecording ? 'Stop recording' : 'Record voice note'}
+                >
+                  {isRecording ? <MicOff className="w-3 h-3" /> : <Mic className="w-3 h-3" />}
+                  {isRecording ? 'Stop' : 'Voice'}
                 </Button>
               </div>
             </div>

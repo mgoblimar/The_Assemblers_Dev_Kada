@@ -153,6 +153,89 @@ Content:
 ${content}`
 }
 
+export function buildPeerReviewPrompt(
+  role: 'skeptic' | 'advocate' | 'synthesis',
+  text: string,
+  skepticSummary?: string,
+  advocateSummary?: string
+): string {
+  switch (role) {
+    case 'skeptic':
+      return `You are a rigorous academic peer reviewer — THE SKEPTIC. Find weaknesses, gaps, and flaws.
+
+Return ONLY a valid JSON object — no markdown, no code fences, no extra text:
+{
+  "verdict": "<one sharp sentence on the core flaw>",
+  "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"],
+  "methodologyGaps": ["<gap 1>", "<gap 2>"],
+  "counterarguments": ["<counterargument 1>", "<counterargument 2>"],
+  "severity": "minor"
+}
+severity must be exactly one of: "minor", "moderate", "major"
+
+Research text:
+${text.slice(0, 1500)}`
+
+    case 'advocate':
+      return `You are a supportive academic peer reviewer — THE ADVOCATE. Defend the research. The skeptic claimed: "${skepticSummary ?? 'no prior critique'}". Rebut where warranted.
+
+Return ONLY a valid JSON object — no markdown, no code fences, no extra text:
+{
+  "verdict": "<one sentence on why this research has merit>",
+  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+  "contributions": ["<contribution 1>", "<contribution 2>"],
+  "rebuttals": ["<rebuttal 1>", "<rebuttal 2>"],
+  "potential": "<one sentence on research impact>"
+}
+
+Research text:
+${text.slice(0, 1500)}`
+
+    case 'synthesis':
+      return `You are a senior editor synthesizing a peer review debate.
+Skeptic: "${skepticSummary ?? ''}"
+Advocate: "${advocateSummary ?? ''}"
+
+Return ONLY a valid JSON object — no markdown, no code fences, no extra text:
+{
+  "overallVerdict": "Accept with minor revisions",
+  "consensusScore": 7,
+  "priorityActions": ["<action 1>", "<action 2>", "<action 3>"],
+  "summary": "<2-3 sentence balanced synthesis>"
+}
+overallVerdict must be exactly one of: "Accept", "Accept with minor revisions", "Major revisions required", "Reject and resubmit"
+consensusScore must be an integer 1-10.
+
+Research text:
+${text.slice(0, 600)}`
+
+    default:
+      return ''
+  }
+}
+
+export function buildLibraryQueryPrompt(query: string, contextItems: { title: string; excerpt: string }[]): string {
+  const context = contextItems
+    .map((item, i) => `[${i + 1}] "${item.title}"\n${item.excerpt}`)
+    .join('\n\n')
+
+  return `You are a research assistant. Answer using ONLY the provided library items as context.
+
+Return ONLY a valid JSON object — no markdown, no code fences, no extra text:
+{
+  "answer": "<comprehensive answer, 2-4 sentences>",
+  "keyInsights": ["<insight 1>", "<insight 2>", "<insight 3>"],
+  "citedItems": [1, 2],
+  "followUpQuestions": ["<follow-up 1>", "<follow-up 2>"]
+}
+citedItems is an array of 1-based indexes referencing the library items below.
+
+Query: ${query}
+
+Library (${contextItems.length} items):
+${context}`
+}
+
 export function buildAgenticPrompt(step: 'summarize' | 'actions' | 'categorize', input: string) {
   switch (step) {
     case 'summarize':

@@ -1,8 +1,8 @@
-import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, BrainCircuit, LogOut, HelpCircle } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, BrainCircuit, LogOut, HelpCircle, Users, Library } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/shared/components/ui/button'
 
-export type ActiveView = 'dashboard' | 'research' | 'advisor' | 'citations' | 'improve' | 'topics'
+export type ActiveView = 'dashboard' | 'research' | 'advisor' | 'citations' | 'improve' | 'topics' | 'peer-review' | 'library'
 
 interface SidebarProps {
   email: string
@@ -23,6 +23,8 @@ const NAV_ITEMS: { view: ActiveView; icon: React.ElementType; label: string; pha
   { view: 'citations',  icon: Bookmark,         label: 'Citations',        phase: '10' },
   { view: 'improve',    icon: PenLine,          label: 'Improve Writing',  phase: '11' },
   { view: 'topics',     icon: Lightbulb,        label: 'Topic Builder',    phase: '12' },
+  { view: 'peer-review', icon: Users,           label: 'Peer Review',      phase: '14' },
+  { view: 'library',    icon: Library,          label: 'Ask My Library',   phase: '14' },
 ]
 
 export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onViewChange, onLogout, onSync, onHelp }: SidebarProps) {

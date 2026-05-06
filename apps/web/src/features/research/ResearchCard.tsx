@@ -52,10 +52,13 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
     : 'Pending'
 
   return (
-    <div className={cn(
-      'rounded-xl border bg-card p-4 flex flex-col gap-3 transition-shadow hover:shadow-md',
-      isAnalyzing && 'ring-1 ring-primary/30 shadow-sm shadow-primary/10'
-    )}>
+    <div 
+      onClick={() => onViewDetails(item)}
+      className={cn(
+        'rounded-xl border bg-card p-4 flex flex-col gap-3 transition-shadow hover:shadow-md cursor-pointer group',
+        isAnalyzing && 'ring-1 ring-primary/30 shadow-sm shadow-primary/10'
+      )}
+    >
       {/* Header row */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className={cn('inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-md border', TYPE_STYLES[type])}>
@@ -69,18 +72,20 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
           {syncLabel}
         </Badge>
         <div className="flex-1" />
-        <Button variant="ghost" size="icon" className="w-6 h-6 text-muted-foreground">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="w-6 h-6 text-muted-foreground"
+          onClick={(e) => e.stopPropagation()}
+        >
           <MoreHorizontal className="w-3.5 h-3.5" />
         </Button>
       </div>
 
       {/* Title */}
-      <button
-        className="text-left text-base font-bold leading-snug hover:text-primary transition-colors line-clamp-2"
-        onClick={() => onViewDetails(item)}
-      >
+      <h3 className="text-left text-base font-bold leading-snug group-hover:text-primary transition-colors line-clamp-2">
         {item.title}
-      </button>
+      </h3>
 
       {/* Preview */}
       <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
@@ -101,6 +106,7 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
             size="sm"
             className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
             title="Improve Writing — Phase 11"
+            onClick={(e) => e.stopPropagation()}
           >
             <PenLine className="w-3 h-3" />
             Improve
@@ -110,6 +116,7 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
             size="sm"
             className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
             title="Find Citations — Phase 10"
+            onClick={(e) => e.stopPropagation()}
           >
             <BookmarkPlus className="w-3 h-3" />
             Cite
@@ -117,7 +124,10 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
           <Button
             size="sm"
             className="h-7 px-3 text-xs gap-1.5"
-            onClick={() => onAnalyze(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAnalyze(item);
+            }}
             disabled={isAnalyzing}
           >
             {isAnalyzing

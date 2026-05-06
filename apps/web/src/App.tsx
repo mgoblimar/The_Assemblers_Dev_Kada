@@ -22,7 +22,10 @@ import { AnalysisAdvisor } from '@/features/advisor/AnalysisAdvisor'
 import { CitationEngine } from '@/features/citations/CitationEngine'
 import { ImprovementAnalyzer } from '@/features/improve/ImprovementAnalyzer'
 import { TopicBuilder } from '@/features/topics/TopicBuilder'
+import { PeerReview } from '@/features/peer-review/PeerReview'
+import { AskLibrary } from '@/features/library/AskLibrary'
 import { LandingPage } from '@/features/landing/LandingPage'
+import { ResearchDetailsModal } from '@/features/research/ResearchDetailsModal'
 import { Search, Plus, Database, Trash2, BarChart3, Bookmark, PanelLeft, PanelRight, Home } from 'lucide-react'
 
 function App() {
@@ -83,6 +86,7 @@ function Dashboard({ session }: { session: Session }) {
   const [showHelp, setShowHelp] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('sidebar-open') !== 'false')
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem('panel-open') !== 'false')
+  const [selectedResearchItemId, setSelectedResearchItemId] = useState<number | null>(null)
 
   // Auth sync
   useEffect(() => {
@@ -157,8 +161,8 @@ function Dashboard({ session }: { session: Session }) {
     }
   }
 
-  const handleViewReport = (_run: AIRun) => {
-    setRefreshTrigger(p => p + 1)
+  const handleViewReport = (run: AIRun) => {
+    setSelectedResearchItemId(run.researchItemId)
   }
 
   const handleItemCreated = () => {
@@ -286,6 +290,7 @@ function Dashboard({ session }: { session: Session }) {
               refreshTrigger={refreshTrigger}
               activeRunId={activeRunId}
               onAnalyze={handleAnalyze}
+              onViewDetails={setSelectedResearchItemId}
               onRunStart={(runId, title) => { setActiveRunId(runId); setActiveRunTitle(title) }}
               onItemCountChange={handleItemCountChange}
               itemCount={itemCount}
@@ -313,6 +318,12 @@ function Dashboard({ session }: { session: Session }) {
 
       {/* Help modal */}
       <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
+
+      {/* Research Details Modal */}
+      <ResearchDetailsModal
+        itemId={selectedResearchItemId}
+        onClose={() => setSelectedResearchItemId(null)}
+      />
     </div>
   )
 }
@@ -325,6 +336,7 @@ interface MainContentProps {
   refreshTrigger: number
   activeRunId: number | null
   onAnalyze: (item: ResearchItem) => void
+  onViewDetails: (itemId: number) => void
   onRunStart: (runId: number, title: string) => void
   onItemCountChange: (count: number) => void
   itemCount: number
@@ -332,11 +344,13 @@ interface MainContentProps {
   citationCount: number
 }
 
-function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount }: MainContentProps) {
+function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount }: MainContentProps) {
   if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} userId={userId} />
   if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} userId={userId} />
   if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} userId={userId} />
   if (activeView === 'topics')    return <TopicBuilder onRunStart={onRunStart} userId={userId} />
+  if (activeView === 'peer-review') return <PeerReview onRunStart={onRunStart} userId={userId} />
+  if (activeView === 'library')     return <AskLibrary userId={userId} />
 
   if (activeView === 'research') {
     return (
@@ -357,6 +371,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
           refreshTrigger={refreshTrigger}
           activeRunId={activeRunId}
           onAnalyze={onAnalyze}
+          onViewDetails={onViewDetails}
           onItemCountChange={onItemCountChange}
         />
       </div>
@@ -393,6 +408,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
         refreshTrigger={refreshTrigger}
         activeRunId={activeRunId}
         onAnalyze={onAnalyze}
+        onViewDetails={onViewDetails}
         onItemCountChange={onItemCountChange}
       />
     </div>

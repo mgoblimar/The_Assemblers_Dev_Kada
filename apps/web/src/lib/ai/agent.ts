@@ -46,11 +46,17 @@ export async function runAgenticWorkflow(researchItemId: number) {
     steps[0].output = summary
     await db.aiRuns.update(runId, { steps: [...steps], output: `SUMMARY:\n${summary}` })
 
+    // Brief delay to prevent rate limit bursting
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
     // Step 2: Extract Actions
     steps[1].status = 'completed'
     const actions = await callAI(buildAgenticPrompt('actions', summary), model)
     steps[1].output = actions
     await db.aiRuns.update(runId, { steps: [...steps], output: `SUMMARY:\n${summary}\n\nACTIONS:\n${actions}` })
+
+    // Brief delay to prevent rate limit bursting
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
     // Step 3: Categorize
     steps[2].status = 'completed'

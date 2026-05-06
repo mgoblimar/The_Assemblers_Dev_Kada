@@ -32,8 +32,12 @@ app.post('/api/scrape', async (req, res) => {
     await page.setViewport({ width: 1280, height: 800 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     
-    // Wait for network to be idle to catch JS-loaded content
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 45000 })
+    // Wait for DOM content and then a bit longer for JS content
+    // 'networkidle0' is too strict for some academic portals (like IEEE) that have persistent background requests
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
+    
+    // Give some time for JS to render the content
+    await new Promise(r => setTimeout(r, 5000))
 
     // Extract content specifically designed for research papers
     const data = await page.evaluate(() => {
@@ -187,22 +191,41 @@ app.post('/api/groq', async (req, res) => {
     return res.status(500).json({ error: 'Missing GROQ_API_KEY' })
   }
 
-  try {
-    console.log(`[PROXY] Calling Groq model: ${req.body.model}`)
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify(req.body),
-    })
-    console.log(`[PROXY] Groq Response status: ${r.status}`)
-    const data = await r.json()
-    return res.status(r.status).json(data)
-  } catch (err) {
-    console.error('[PROXY] Groq Error:', err)
-    return res.status(500).json({ error: String(err.message) })
+  const MAX_RETRIES = 2
+  let attempt = 0
+
+  while (attempt <= MAX_RETRIES) {
+    try {
+      console.log(`[PROXY] Calling Groq model: ${req.body.model} (Attempt ${attempt + 1})`)
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify(req.body),
+      })
+
+      console.log(`[PROXY] Groq Response status: ${r.status}`)
+      
+      if (r.status === 429 && attempt < MAX_RETRIES) {
+        console.warn(`[PROXY] Groq rate limited (429). Retrying in 2s...`)
+        attempt++
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        continue
+      }
+
+      const data = await r.json()
+      return res.status(r.status).json(data)
+    } catch (err) {
+      console.error('[PROXY] Groq Error:', err)
+      if (attempt < MAX_RETRIES) {
+        attempt++
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        continue
+      }
+      return res.status(500).json({ error: String(err.message) })
+    }
   }
 })
 
