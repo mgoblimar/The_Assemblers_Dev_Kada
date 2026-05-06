@@ -1,6 +1,6 @@
 const DEFAULT_GROQ_MODEL = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
 
-export async function generateWithGroq(prompt: string, model = DEFAULT_GROQ_MODEL) {
+export async function generateWithGroq(prompt: string, model = DEFAULT_GROQ_MODEL, maxTokens = 4096) {
   const url = `/api/groq`
 
   const body = {
@@ -12,7 +12,7 @@ export async function generateWithGroq(prompt: string, model = DEFAULT_GROQ_MODE
       },
     ],
     temperature: 0.2,
-    max_tokens: 512,
+    max_tokens: maxTokens,
   }
 
   try {

@@ -1,6 +1,6 @@
 const DEFAULT_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite'
 
-export async function generateWithGemini(prompt: string, model = DEFAULT_GEMINI_MODEL) {
+export async function generateWithGemini(prompt: string, model = DEFAULT_GEMINI_MODEL, maxTokens = 4096) {
   // Prefer calling a same-origin proxy at `/api/gemini` (Vite proxy -> localhost:3001)
   const url = `/api/gemini?model=${encodeURIComponent(model)}`
 
@@ -12,7 +12,7 @@ export async function generateWithGemini(prompt: string, model = DEFAULT_GEMINI_
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 512,
+      maxOutputTokens: maxTokens,
     },
   }
 
