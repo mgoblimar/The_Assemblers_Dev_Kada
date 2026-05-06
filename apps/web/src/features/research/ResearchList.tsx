@@ -8,13 +8,13 @@ import { FileText, Loader2 } from 'lucide-react'
 interface ResearchListProps {
   userId?: string
   refreshTrigger: number
-  activeRunId: number | null
+  analyzingItemId: number | null
   onAnalyze: (item: ResearchItem) => void
   onViewDetails: (itemId: number) => void
   onItemCountChange: (count: number) => void
 }
 
-export function ResearchList({ userId, refreshTrigger, activeRunId, onAnalyze, onViewDetails, onItemCountChange }: ResearchListProps) {
+export function ResearchList({ userId, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onItemCountChange }: ResearchListProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [aiRunCounts, setAiRunCounts] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState(true)
@@ -136,7 +136,7 @@ export function ResearchList({ userId, refreshTrigger, activeRunId, onAnalyze, o
             key={item.id}
             item={item}
             aiRunCount={item.id ? (aiRunCounts[item.id] ?? 0) : 0}
-            isAnalyzing={activeRunId !== null}
+            isAnalyzing={item.id === analyzingItemId}
             onAnalyze={onAnalyze}
             onViewDetails={(item) => item.id && onViewDetails(item.id)}
           />

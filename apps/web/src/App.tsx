@@ -87,6 +87,7 @@ function Dashboard({ session }: { session: Session }) {
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('sidebar-open') !== 'false')
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem('panel-open') !== 'false')
   const [selectedResearchItemId, setSelectedResearchItemId] = useState<number | null>(null)
+  const [analyzingItemId, setAnalyzingItemId] = useState<number | null>(null)
 
   // Auth sync
   useEffect(() => {
@@ -150,19 +151,28 @@ function Dashboard({ session }: { session: Session }) {
 
   const handleAnalyze = async (item: ResearchItem) => {
     if (!item.id) return
+    setAnalyzingItemId(item.id)
     setActiveRunTitle(item.title)
     setActiveRunId(null)
     try {
-      const { runId } = await runAgenticWorkflow(item.id)
-      setActiveRunId(runId)
+      await runAgenticWorkflow(item.id, (runId) => {
+        // Called as soon as the DB record is created — panel starts polling immediately
+        setActiveRunId(runId)
+      })
       setRefreshTrigger(p => p + 1)
     } catch {
       setActiveRunTitle(null)
+      setActiveRunId(null)
+    } finally {
+      setAnalyzingItemId(null)
     }
   }
 
   const handleViewReport = (run: AIRun) => {
     setSelectedResearchItemId(run.researchItemId)
+    // Reset the panel so it returns to idle after viewing the report
+    setActiveRunId(null)
+    setActiveRunTitle(null)
   }
 
   const handleItemCreated = () => {
@@ -288,7 +298,7 @@ function Dashboard({ session }: { session: Session }) {
               showForm={showForm}
               onItemCreated={handleItemCreated}
               refreshTrigger={refreshTrigger}
-              activeRunId={activeRunId}
+              analyzingItemId={analyzingItemId}
               onAnalyze={handleAnalyze}
               onViewDetails={setSelectedResearchItemId}
               onRunStart={(runId, title) => { setActiveRunId(runId); setActiveRunTitle(title) }}
@@ -334,7 +344,7 @@ interface MainContentProps {
   showForm: boolean
   onItemCreated: () => void
   refreshTrigger: number
-  activeRunId: number | null
+  analyzingItemId: number | null
   onAnalyze: (item: ResearchItem) => void
   onViewDetails: (itemId: number) => void
   onRunStart: (runId: number, title: string) => void
@@ -344,7 +354,7 @@ interface MainContentProps {
   citationCount: number
 }
 
-function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, activeRunId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount }: MainContentProps) {
+function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount }: MainContentProps) {
   if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} userId={userId} />
   if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} userId={userId} />
   if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} userId={userId} />
@@ -369,7 +379,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
         <ResearchList
           userId={userId}
           refreshTrigger={refreshTrigger}
-          activeRunId={activeRunId}
+          analyzingItemId={analyzingItemId}
           onAnalyze={onAnalyze}
           onViewDetails={onViewDetails}
           onItemCountChange={onItemCountChange}
@@ -406,7 +416,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, refreshTrigg
       <ResearchList
         userId={userId}
         refreshTrigger={refreshTrigger}
-        activeRunId={activeRunId}
+        analyzingItemId={analyzingItemId}
         onAnalyze={onAnalyze}
         onViewDetails={onViewDetails}
         onItemCountChange={onItemCountChange}

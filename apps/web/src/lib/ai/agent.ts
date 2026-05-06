@@ -4,7 +4,7 @@ import { buildAgenticPrompt } from './prompts'
 
 const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as 'gemini' | 'groq') || 'groq'
 
-export async function runAgenticWorkflow(researchItemId: number) {
+export async function runAgenticWorkflow(researchItemId: number, onRunCreated?: (runId: number) => void) {
   const provider = DEFAULT_PROVIDER
   const model = provider === 'gemini' 
     ? (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-lite')
@@ -30,6 +30,9 @@ export async function runAgenticWorkflow(researchItemId: number) {
       { name: 'Categorize', status: 'pending' },
     ]
   })
+
+  // Notify caller immediately so the panel can start polling
+  onRunCreated?.(runId)
 
   try {
     const steps: { name: string, status: 'pending' | 'completed' | 'failed', output?: string }[] = [

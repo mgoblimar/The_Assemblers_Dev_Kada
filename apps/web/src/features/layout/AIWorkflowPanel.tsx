@@ -157,16 +157,19 @@ export function AIWorkflowPanel({ runId, itemTitle, onCancel, onViewReport }: AI
             size="sm"
             className="flex-1 h-8 text-xs"
             onClick={onCancel}
-            disabled={isDone || isFailed}
           >
             <X className="w-3 h-3 mr-1" />
-            Cancel
+            {isDone || isFailed ? 'Close' : 'Cancel'}
           </Button>
           <Button
             size="sm"
             className="flex-1 h-8 text-xs"
             disabled={!isDone}
-            onClick={() => run && onViewReport(run)}
+            onClick={() => {
+              if (run) {
+                onViewReport(run)  // opens modal + resets panel (handled in App.tsx)
+              }
+            }}
           >
             <FileText className="w-3 h-3 mr-1" />
             View Report
