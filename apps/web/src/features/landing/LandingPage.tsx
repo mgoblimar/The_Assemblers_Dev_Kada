@@ -295,23 +295,4 @@ function WorkflowStep({ number, icon: Icon, title, description }: { number: stri
   )
 }
 
-function TestimonialCard({ quote, author, role }: { quote: string, author: string, role: string }) {
-  return (
-    <div className="rounded-2xl border bg-card p-8 shadow-sm space-y-4">
-      <div className="flex gap-1">
-        {[1,2,3,4,5].map(i => <Sparkles key={i} className="w-3 h-3 text-primary" />)}
-      </div>
-      <p className="text-sm text-foreground leading-relaxed italic">"{quote}"</p>
-      <div className="flex items-center gap-3 pt-2">
-        <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-          {author.substring(0, 2).toUpperCase()}
-        </div>
-        <div>
-          <div className="text-xs font-bold">{author}</div>
-          <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{role}</div>
-        </div>
-      </div>
-    </div>
-  )
-}
 

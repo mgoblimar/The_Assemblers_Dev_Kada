@@ -28,7 +28,7 @@ import { PeerReview } from '@/features/peer-review/PeerReview'
 import { AskLibrary } from '@/features/library/AskLibrary'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { ResearchDetailsModal } from '@/features/research/ResearchDetailsModal'
-import { Plus, Trash2, PanelLeft, PanelRight, Home, BrainCircuit } from 'lucide-react'
+import { Plus, Trash2, PanelLeft, PanelRight, Home } from 'lucide-react'
 import { DashboardOverview } from '@/features/layout/DashboardOverview'
 import { ProjectsDirectory } from '@/features/builder/ProjectsDirectory'
 import { ProjectWorkspace } from '@/features/builder/ProjectWorkspace'
@@ -78,7 +78,7 @@ function App() {
 
 function Dashboard({ session }: { session: Session }) {
   const navigate = useNavigate()
-  const { theme } = useTheme()
+  useTheme()
   const [online, setOnline] = useState(navigator.onLine)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
