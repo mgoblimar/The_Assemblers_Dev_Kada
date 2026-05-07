@@ -14,6 +14,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from '@/shared/components/ui/badge'
 import './landing.css'
+import logoWhite from '@/assets/Logo/LogoWhiteBG-removebg-preview.png'
 
 interface LandingPageProps {
   isAuthenticated?: boolean
@@ -25,21 +26,18 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
   return (
     <div className="min-h-screen academic-bg text-foreground font-body selection:bg-primary/20 selection:text-primary overflow-x-hidden">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border h-16">
+      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border h-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
-          <div className="flex items-center gap-2.5 group cursor-pointer">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-primary-foreground shadow-sm">
-              <BrainCircuit className="w-5 h-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight font-heading">
-              AIPeer<span className="text-primary">.</span>
+          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => navigate('/')}>
+            <img src={logoWhite} alt="PeerEvAI Logo" className="h-7 w-auto object-contain" />
+            <span className="text-lg font-extrabold tracking-tight font-heading select-none">
+              Peer<span className="text-primary italic">EvAI</span>
             </span>
           </div>
           
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</a>
             <a href="#workflow" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Workflow</a>
-            <a href="#trust" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Trust</a>
           </div>
 
           <div className="flex items-center gap-4">
@@ -235,61 +233,13 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Trust & Credentials */}
-      <section id="trust" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-10">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold font-heading">Institutional Trust</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Built for researchers who demand more than just chatbots. AIPeer is designed to handle the complexity of professional academic workflows.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <div className="text-3xl font-bold font-heading text-primary">Offline-First</div>
-                <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Local Persistence</p>
-              </div>
-              <div className="space-y-2">
-                <div className="text-3xl font-bold font-heading text-primary">Privacy Focus</div>
-                <div className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Secure Data</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-3xl font-bold font-heading text-primary">Academic Grade</div>
-                <div className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Peer Standards</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-3xl font-bold font-heading text-primary">99.9% Sync</div>
-                <div className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Reliable Cloud</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-            <TestimonialCard 
-              quote="AIPeer has completely transformed how I handle my literature reviews. The agentic workflow is like having a postdoc assistant 24/7."
-              author="Dr. Sarah Chen"
-              role="Senior Researcher"
-            />
-            <TestimonialCard 
-              quote="The offline-first approach is a lifesaver. I can work in the field without worrying about connection, and everything syncs perfectly later."
-              author="Marcus Thorne"
-              role="Field Scientist"
-            />
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="py-16 border-t border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center text-primary-foreground">
-                <BrainCircuit className="w-3.5 h-3.5" />
-              </div>
-              <span className="font-bold tracking-tight font-heading">AIPeer<span className="text-primary">.</span></span>
+              <img src={logoWhite} alt="PeerEvAI Logo" className="h-6 w-auto object-contain" />
+              <span className="font-bold tracking-tight font-heading">Peer<span className="text-primary italic">EvAI</span></span>
             </div>
             <div className="flex gap-8">
               <a href="#" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Privacy</a>
@@ -298,7 +248,7 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
             </div>
           </div>
           <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-border/50 gap-4">
-            <p className="text-[11px] text-muted-foreground">© 2026 AIPeer. DevKada 2026 Hackathon | The Assemblers.</p>
+            <p className="text-[11px] text-muted-foreground">© 2026 PeerEvAI. DevKada 2026 Hackathon | The Assemblers.</p>
             <div className="flex items-center gap-4 text-muted-foreground">
               <Shield className="w-4 h-4" />
               <span className="text-[11px] uppercase tracking-[0.2em] font-bold">Secure Manuscript Storage</span>

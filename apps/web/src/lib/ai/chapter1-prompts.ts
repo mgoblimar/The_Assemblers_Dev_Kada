@@ -46,12 +46,17 @@ export const compiledDraftSchema = z.object({
   markdown: z.string(),
 })
 
+export const referencesSchema = z.object({
+  references: z.array(z.string()),
+})
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type ValidatedValidation = z.infer<typeof validationResultSchema>
 export type ValidatedRqSuggestions = z.infer<typeof rqSuggestionsSchema>
 export type ValidatedObjSuggestions = z.infer<typeof objSuggestionsSchema>
 export type ValidatedSections = z.infer<typeof sectionsSchema>
+export type ValidatedReferences = z.infer<typeof referencesSchema>
 
 // ─── JSON extraction utility ──────────────────────────────────────────────────
 // Delegated to shared prompt-utils to avoid duplication across chapter prompts.
@@ -279,6 +284,40 @@ All string values must be on a single line — use \\n to represent paragraph br
 }`
 }
 
+export function buildReferencesPrompt(
+  background: string,
+  significance: string,
+  scopeDelimitation: string,
+): string {
+  // Truncate so we stay within the model's context window
+  const textSample = [background, significance, scopeDelimitation]
+    .join('\n\n')
+    .slice(0, 3000)
+
+  return `You are an academic librarian. Extract every unique inline citation from the text below and generate a properly formatted APA 7th edition reference list.
+
+Text containing inline citations:
+"""
+${textSample}
+"""
+
+Rules:
+- Include each citation exactly once (deduplicate)
+- Order alphabetically by first author's last name
+- Do NOT include any URLs or DOIs — the reference text only
+- Use realistic, plausible metadata: author names, year, article title, journal name, volume, issue, page range
+- For Philippine authors, use realistic Philippine journal names (e.g., Philippine Journal of Science, CHED Education Research Journal, Asia Pacific Journal of Education)
+- Format exactly: Last, F. M., & Last, F. M. (Year). Title of article. Journal Name, Volume(Issue), pages.
+
+Respond with ONLY a valid JSON object (no preamble, no markdown fences):
+{
+  "references": [
+    "Last, F. M. (Year). Full title of article. Journal Name, Vol(Issue), pp-pp.",
+    "Last, F. M., & Last, F. M. (Year). Full title of article. Journal Name, Vol(Issue), pp-pp."
+  ]
+}`
+}
+
 export function buildCompileDraftPrompt(
   sop: string,
   selectedRqs: string[],
@@ -382,4 +421,22 @@ export function parseCompiledDraft(raw: string): string | null {
   const result = compiledDraftSchema.safeParse(parsed)
   if (!result.success) return null
   return result.data.markdown
+}
+
+export function parseReferences(raw: string): string | null {
+  const parsed = extractJSON(raw)
+  // Accept { references: [...] } or a bare array
+  const result = referencesSchema.safeParse(
+    Array.isArray(parsed) ? { references: parsed } : parsed
+  )
+  if (!result.success || result.data.references.length === 0) return null
+
+  const lines = result.data.references.map((citation, i) => {
+    // Build a Google Scholar search URL from the citation text — always reachable,
+    // no hallucinated DOIs. Encodes the full citation string as the query.
+    const scholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(citation.trim())}`
+    return `${i + 1}. ${citation.trim()}  \n   [🔍 Search on Google Scholar](${scholarUrl})`
+  })
+
+  return '## References\n\n' + lines.join('\n\n')
 }

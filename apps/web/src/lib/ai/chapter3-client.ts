@@ -1,11 +1,14 @@
 import { callAIProvider, type AIProvider } from './index'
 import {
+  buildDesignRecommendPrompt,
   buildInstrumentsPrompt,
   buildProcedurePrompt,
   buildAnalysisPrompt,
   buildEthicsPrompt,
+  parseDesignRecommendation,
   parseSectionText,
 } from './chapter3-prompts'
+import type { DesignRecommendation } from './chapter3-prompts'
 
 const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'cerebras'
 
@@ -22,6 +25,20 @@ function ai(prompt: string): Promise<string> {
 }
 
 // ─── Chapter 3 AI calls ───────────────────────────────────────────────────────
+
+export async function generateDesignRecommendation(
+  sop: string,
+  rqs: string[],
+  foreignLit: string,
+  localLit: string,
+  theoreticalFramework: string,
+  synthesis: string,
+): Promise<DesignRecommendation> {
+  const raw = await ai(buildDesignRecommendPrompt(sop, rqs, foreignLit, localLit, theoreticalFramework, synthesis))
+  const result = parseDesignRecommendation(raw)
+  if (!result) throw new Error('AI returned unexpected format for design recommendation. Please retry.')
+  return result
+}
 
 export async function generateInstruments(
   sop: string,

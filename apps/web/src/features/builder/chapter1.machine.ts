@@ -6,6 +6,8 @@ import type {
 
 // ─── Intents ─────────────────────────────────────────────────────────────────
 
+export type RefineSection = 'background' | 'rqs' | 'objectives' | 'references'
+
 export type Chapter1Intent =
   | { type: 'SUBMIT_SOP'; text: string }
   | { type: 'SOP_VALIDATED'; result: ValidationResult }
@@ -16,7 +18,9 @@ export type Chapter1Intent =
   | { type: 'SELECT_OBJECTIVES'; objectives: string[] }
   | { type: 'OBJ_VALIDATED'; result: ValidationResult }
   | { type: 'SECTIONS_GENERATED'; background: string; scopeDelimitation: string; significance: string; definitions: DefinitionEntry[] }
+  | { type: 'REFERENCES_GENERATED'; references: string }
   | { type: 'DRAFT_COMPILED'; markdown: string }
+  | { type: 'REFINE_SECTION'; section: RefineSection }
   | { type: 'AI_ERROR'; message: string }
   | { type: 'RETRY' }
 
@@ -27,6 +31,7 @@ export type SideEffect =
   | 'run_obj_suggest'
   | 'run_obj_validate'
   | 'run_generate_sections'
+  | 'run_references_generate'
 
 export interface Transition {
   next: ChapterState
@@ -132,14 +137,21 @@ export function chapter1Reduce(
 
     case 'SECTIONS_GENERATED': {
       if (currentStep !== 'generate_sections') return { next: state }
-      // Assemble markdown client-side — no second AI call needed.
-      // A second round-trip would overflow llama3.1-8b's 8k context window.
+      // Store sections, then kick off references generation as the next AI step.
       const updatedArtifacts = merge({
         background: intent.background,
         scopeDelimitation: intent.scopeDelimitation,
         significance: intent.significance,
         definitions: intent.definitions,
       })
+      const next = record('ch1_references_generate', updatedArtifacts, history, 'running_ai', 'Generating references')
+      return { next: { ...next, id: state.id, projectId: state.projectId }, sideEffect: 'run_references_generate' }
+    }
+
+    case 'REFERENCES_GENERATED': {
+      if (currentStep !== 'ch1_references_generate') return { next: state }
+      const updatedArtifacts = merge({ ch1_references: intent.references })
+      // Assemble the chapter draft client-side now that all artifacts are ready.
       const markdown = assembleChapter1Markdown(updatedArtifacts)
       const next = record('done', { ...updatedArtifacts, compiledDraft: markdown }, history, 'done', 'Chapter 1 complete')
       return { next: { ...next, id: state.id, projectId: state.projectId } }
@@ -152,13 +164,44 @@ export function chapter1Reduce(
       return { next: { ...next, id: state.id, projectId: state.projectId } }
     }
 
+    case 'REFINE_SECTION': {
+      // Only allowed from the done state — sends the user back to regenerate a section.
+      if (currentStep !== 'done') return { next: state }
+      if (intent.section === 'background') {
+        const next = record('generate_sections', artifacts, history, 'running_ai', 'Refining background sections')
+        return { next: { ...next, id: state.id, projectId: state.projectId }, sideEffect: 'run_generate_sections' }
+      }
+      if (intent.section === 'rqs') {
+        const next = record('rq_select', artifacts, history, 'awaiting_user', 'Editing research questions')
+        return { next: { ...next, id: state.id, projectId: state.projectId } }
+      }
+      if (intent.section === 'objectives') {
+        const next = record('obj_select', artifacts, history, 'awaiting_user', 'Editing objectives')
+        return { next: { ...next, id: state.id, projectId: state.projectId } }
+      }
+      if (intent.section === 'references') {
+        const next = record('ch1_references_generate', artifacts, history, 'running_ai', 'Regenerating references')
+        return { next: { ...next, id: state.id, projectId: state.projectId }, sideEffect: 'run_references_generate' }
+      }
+      return { next: state }
+    }
+
     case 'AI_ERROR': {
       const next: ChapterState = { ...state, stepStatus: 'failed' }
       return { next }
     }
 
     case 'RETRY': {
-      // Go back to awaiting_user for the current input step
+      // For validation steps — go back to their input step.
+      // For AI-only steps (generate_sections, ch1_references_generate) — re-run the same effect.
+      if (currentStep === 'generate_sections') {
+        const next: ChapterState = { ...state, stepStatus: 'running_ai' }
+        return { next, sideEffect: 'run_generate_sections' }
+      }
+      if (currentStep === 'ch1_references_generate') {
+        const next: ChapterState = { ...state, stepStatus: 'running_ai' }
+        return { next, sideEffect: 'run_references_generate' }
+      }
       const inputStep = currentStep === 'sop_validate' ? 'sop_input'
         : currentStep === 'rq_validate'  ? 'rq_select'
         : currentStep === 'obj_validate' ? 'obj_select'
@@ -178,14 +221,25 @@ export function chapter1Reduce(
 // llama3.1-8b's 8k context window.
 
 function assembleChapter1Markdown(a: ChapterArtifacts): string {
-  const rqLines  = (a.selectedRqs        ?? []).map((q, i) => `${i + 1}. ${q}`).join('\n')
-  const objLines = (a.selectedObjectives ?? []).map((o, i) => `${i + 1}. ${o}`).join('\n')
-  const defLines = (a.definitions        ?? [])
-    .map(d => `**${d.term}** — ${d.definition}`)
+  // Research Questions — each on its own line with number
+  const rqLines = (a.selectedRqs ?? [])
+    .map((q, i) => `${i + 1}. ${q}`)
+    .join('\n')
+
+  // Objectives — each on its own line with number
+  const objLines = (a.selectedObjectives ?? [])
+    .map((o, i) => `${i + 1}. ${o}`)
+    .join('\n')
+
+  // Definition of Terms — bold term + period + definition in APA operational style
+  const defLines = (a.definitions ?? [])
+    .map(d => `**${d.term}.** ${d.definition}`)
     .join('\n\n')
 
   return [
-    '# Chapter 1: Introduction',
+    '# Chapter 1',
+    '',
+    '# The Problem and Its Background',
     '',
     '## Background of the Study',
     '',
@@ -197,21 +251,27 @@ function assembleChapter1Markdown(a: ChapterArtifacts): string {
     '',
     '## Research Questions',
     '',
+    'This study seeks to answer the following research questions:',
+    '',
     rqLines,
     '',
     '## Objectives of the Study',
     '',
+    'This study aims to achieve the following objectives:',
+    '',
     objLines,
-    '',
-    '## Scope and Delimitation',
-    '',
-    a.scopeDelimitation ?? '',
     '',
     '## Significance of the Study',
     '',
     a.significance ?? '',
     '',
+    '## Scope and Delimitation of the Study',
+    '',
+    a.scopeDelimitation ?? '',
+    '',
     '## Definition of Terms',
+    '',
+    'For the purposes of this study, the following terms are operationally defined:',
     '',
     defLines,
   ].join('\n').trim()
@@ -230,9 +290,10 @@ export function stepLabel(step: ChapterStepId): string {
     obj_suggest: 'Generating Objectives…',
     obj_select: 'Objectives',
     obj_validate: 'Validating Objectives…',
-    generate_sections: 'Generating Sections…',
-    compile_draft: 'Compiling Chapter 1…',
-    done: 'Chapter 1 Complete',
+    generate_sections:        'Generating Sections…',
+    ch1_references_generate:  'Generating References…',
+    compile_draft:            'Compiling Chapter 1…',
+    done:                     'Chapter 1 Complete',
     // Chapter 2
     rrl_theme_input: 'Research Themes',
     rrl_citations_suggest: 'Suggesting Citations…',
@@ -243,6 +304,7 @@ export function stepLabel(step: ChapterStepId): string {
     rrl_synthesis_generate: 'Writing Synthesis…',
     rrl_done: 'Chapter 2 Complete',
     // Chapter 3
+    method_design_ai:     'Analyzing Literature…',
     method_design_select: 'Research Design',
     method_locale_input: 'Locale & Participants',
     method_sampling_input: 'Sampling Technique',
@@ -260,7 +322,7 @@ export const ORDERED_STEPS: ChapterStepId[] = [
   'sop_input', 'sop_validate',
   'rq_suggest', 'rq_select', 'rq_validate',
   'obj_suggest', 'obj_select', 'obj_validate',
-  'generate_sections', 'done',
+  'generate_sections', 'ch1_references_generate', 'done',
 ]
 
 export function stepProgress(step: ChapterStepId): number {

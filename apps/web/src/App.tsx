@@ -12,10 +12,11 @@ import { runAgenticWorkflow } from '@/lib/ai/agent'
 import { db } from '@/lib/db/database'
 import type { AIRun, ResearchItem } from '@/lib/db/database'
 import { Session } from '@supabase/supabase-js'
-import { Input } from '@/shared/components/ui/input'
 import { cn } from '@/lib/utils'
 
-import { ThemeProvider, ThemeToggle } from '@/components/ThemeProvider'
+import { ThemeProvider, ThemeToggle, useTheme } from '@/components/ThemeProvider'
+
+import logoWhite from '@/assets/Logo/LogoWhiteBG-removebg-preview.png'
 
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster } from '@/shared/components/ui/toaster'
@@ -27,7 +28,7 @@ import { PeerReview } from '@/features/peer-review/PeerReview'
 import { AskLibrary } from '@/features/library/AskLibrary'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { ResearchDetailsModal } from '@/features/research/ResearchDetailsModal'
-import { Search, Plus, Trash2, PanelLeft, PanelRight, Home, BrainCircuit } from 'lucide-react'
+import { Plus, Trash2, PanelLeft, PanelRight, Home, BrainCircuit } from 'lucide-react'
 import { DashboardOverview } from '@/features/layout/DashboardOverview'
 import { ProjectsDirectory } from '@/features/builder/ProjectsDirectory'
 import { ProjectWorkspace } from '@/features/builder/ProjectWorkspace'
@@ -77,6 +78,7 @@ function App() {
 
 function Dashboard({ session }: { session: Session }) {
   const navigate = useNavigate()
+  const { theme } = useTheme()
   const [online, setOnline] = useState(navigator.onLine)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -91,7 +93,6 @@ function Dashboard({ session }: { session: Session }) {
     return 'dashboard'
   })
   const [showForm, setShowForm] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [activeRunId, setActiveRunId] = useState<number | null>(null)
   const [activeRunTitle, setActiveRunTitle] = useState<string | null>(null)
   const [itemCount, setItemCount] = useState(0)
@@ -259,9 +260,11 @@ function Dashboard({ session }: { session: Session }) {
         <div className="flex items-center gap-3">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="bg-primary p-1 rounded-md shadow-sm">
-              <BrainCircuit className="w-3.5 h-3.5 text-primary-foreground" />
-            </div>
+            <img 
+              src={logoWhite} 
+              alt="PeerEvAI Logo" 
+              className="h-7 w-auto object-contain"
+            />
             <span className="font-extrabold text-lg tracking-tight text-foreground select-none" style={{ fontFamily: 'Fraunces, serif' }}>
               Peer<span className="text-primary italic">EvAI</span>
             </span>
@@ -280,18 +283,6 @@ function Dashboard({ session }: { session: Session }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative w-56 hidden sm:block">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted-foreground pointer-events-none" />
-            <Input
-              className="pl-8 h-7 text-[10px] bg-muted/50 border-border rounded-full focus-visible:ring-1 transition-all focus:bg-background w-full"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="h-5 w-px bg-border mx-0.5" />
-
           {topBarAction && (
             <button
               onClick={topBarAction.onClick}
@@ -502,9 +493,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm
       onToggleForm={onToggleForm}
       onNavigateToView={onNavigateToView}
       onTogglePanel={onTogglePanel}
-      onAnalyze={onAnalyze}
-      onViewDetails={onViewDetails}
-      analyzingItemId={analyzingItemId}
+      onOpenProject={onOpenProject}
       refreshTrigger={refreshTrigger}
       onItemCountChange={onItemCountChange}
     />

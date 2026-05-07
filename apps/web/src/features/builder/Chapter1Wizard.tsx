@@ -14,8 +14,12 @@ interface Props {
   onGoToNext?: () => void
 }
 
-// Steps that are purely AI running (compile_draft removed — assembled client-side now)
-const AI_RUNNING_STEPS: ChapterStepId[] = ['sop_validate', 'rq_suggest', 'rq_validate', 'obj_suggest', 'obj_validate', 'generate_sections']
+// Steps that are purely AI running (no user input required)
+const AI_RUNNING_STEPS: ChapterStepId[] = [
+  'sop_validate', 'rq_suggest', 'rq_validate',
+  'obj_suggest', 'obj_validate',
+  'generate_sections', 'ch1_references_generate',
+]
 
 export function Chapter1Wizard({ projectId, onDone, onGoToNext }: Props) {
   const {
@@ -27,6 +31,7 @@ export function Chapter1Wizard({ projectId, onDone, onGoToNext }: Props) {
     selectRqs,
     selectObjectives,
     retry,
+    refineSection,
     continueAnywayFromSop,
     continueAnywayFromRqs,
     continueAnywayFromObjs,
@@ -52,7 +57,7 @@ export function Chapter1Wizard({ projectId, onDone, onGoToNext }: Props) {
   const isFailed = stepStatus === 'failed'
 
   // ── Step breadcrumb ────────────────────────────────────────────────────────
-  const visibleSteps: ChapterStepId[] = ['sop_input', 'rq_select', 'obj_select', 'generate_sections', 'done']
+  const visibleSteps: ChapterStepId[] = ['sop_input', 'rq_select', 'obj_select', 'generate_sections', 'ch1_references_generate', 'done']
   const currentStepIdx = ORDERED_STEPS.indexOf(currentStep)
   let currentVisibleIdx = 0
   for (let i = visibleSteps.length - 1; i >= 0; i--) {
@@ -82,7 +87,14 @@ export function Chapter1Wizard({ projectId, onDone, onGoToNext }: Props) {
     }
 
     if (currentStep === 'done') {
-      return <DraftReviewStep state={chapterState} onNextChapter={onGoToNext} nextChapterLabel="Chapter 2" />
+      return (
+        <DraftReviewStep
+          state={chapterState}
+          onNextChapter={onGoToNext}
+          nextChapterLabel="Chapter 2"
+          onRefine={refineSection}
+        />
+      )
     }
 
     if (currentStep === 'sop_input') {
@@ -123,11 +135,12 @@ export function Chapter1Wizard({ projectId, onDone, onGoToNext }: Props) {
   }
 
   const stepLabels: Partial<Record<ChapterStepId, string>> = {
-    sop_input:        'Problem',
-    rq_select:        'Questions',
-    obj_select:       'Objectives',
-    generate_sections:'Sections',
-    done:             'Draft',
+    sop_input:               'Problem',
+    rq_select:               'Questions',
+    obj_select:              'Objectives',
+    generate_sections:       'Sections',
+    ch1_references_generate: 'References',
+    done:                    'Draft',
   }
 
   return (

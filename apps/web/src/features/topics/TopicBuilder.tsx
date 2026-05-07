@@ -292,8 +292,8 @@ export function TopicBuilder({ onRunStart, userId }: TopicBuilderProps) {
               disabled={loadingOutline}
             >
               {loadingOutline
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Building outline…</>
-                : <><BookOpen className="w-4 h-4" /> Build Research Outline</>
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Building outline…</>
+                : <><BookOpen className="w-3.5 h-3.5" /> Build Research Outline</>
               }
             </Button>
           )}

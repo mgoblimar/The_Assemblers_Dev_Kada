@@ -136,8 +136,8 @@ export function ImprovementAnalyzer({ onRunStart, userId }: ImprovementAnalyzerP
             disabled={loading || !selectedId || items.length === 0}
           >
             {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
-              : <><Sparkles className="w-4 h-4" /> Analyze Writing</>
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing…</>
+              : <><Sparkles className="w-3.5 h-3.5" /> Analyze Writing</>
             }
           </Button>
 

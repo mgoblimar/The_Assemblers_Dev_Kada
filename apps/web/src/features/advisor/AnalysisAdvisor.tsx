@@ -127,8 +127,8 @@ export function AnalysisAdvisor({ onRunStart, userId }: AnalysisAdvisorProps) {
             disabled={loading || !selectedId || items.length === 0}
           >
             {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
-              : <><Sparkles className="w-4 h-4" /> Run Analysis Advisor</>
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing…</>
+              : <><Sparkles className="w-3.5 h-3.5" /> Run Analysis Advisor</>
             }
           </Button>
 

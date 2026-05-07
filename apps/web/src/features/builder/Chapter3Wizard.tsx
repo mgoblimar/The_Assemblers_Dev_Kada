@@ -16,6 +16,7 @@ interface Props {
 }
 
 const VISIBLE_STEPS: ChapterStepId[] = [
+  'method_design_ai',
   'method_design_select',
   'method_locale_input',
   'method_sampling_input',
@@ -25,6 +26,7 @@ const VISIBLE_STEPS: ChapterStepId[] = [
 ]
 
 const STEP_LABELS: Partial<Record<ChapterStepId, string>> = {
+  method_design_ai:           'Recommend',
   method_design_select:       'Design',
   method_locale_input:        'Locale',
   method_sampling_input:      'Sampling',

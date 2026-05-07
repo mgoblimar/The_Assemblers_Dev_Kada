@@ -1,13 +1,36 @@
 import { z } from 'zod'
 import { extractJSON, sanitizeText } from './prompt-utils'
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
+// ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const sectionTextSchema = z.object({
   text: z.string().min(1),
 })
 
-// ─── Parser ───────────────────────────────────────────────────────────────────
+const designRecommendationSchema = z.object({
+  design: z.enum(['quantitative', 'qualitative', 'mixed']),
+  rationale: z.string().min(1),
+  keyReasons: z.array(z.string().min(1)).min(1),
+})
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface DesignRecommendation {
+  design: 'quantitative' | 'qualitative' | 'mixed'
+  rationale: string
+  keyReasons: string[]
+}
+
+// ─── Parsers ─────────────────────────────────────────────────────────────────
+
+export function parseDesignRecommendation(raw: string): DesignRecommendation | null {
+  try {
+    const parsed = extractJSON(raw)
+    const result = designRecommendationSchema.safeParse(parsed)
+    if (result.success) return result.data
+  } catch { /* fall through */ }
+  return null
+}
 
 export function parseSectionText(raw: string): string | null {
   try {
@@ -148,6 +171,72 @@ IMPORTANT: Respond with ONLY a single valid JSON object. No preamble, no markdow
 All text must be on a single line — use \\n for paragraph breaks, NOT actual newlines.
 
 { "text": "Paragraph 1. \\n\\n Paragraph 2. \\n\\n Paragraph 3." }`
+}
+
+export function buildDesignRecommendPrompt(
+  sop: string,
+  rqs: string[],
+  foreignLit: string,
+  localLit: string,
+  theoreticalFramework: string,
+  synthesis: string,
+): string {
+  const rqList = rqs.map((q, i) => `${i + 1}. ${q}`).join('\n')
+
+  // Truncate each section to stay within token budget
+  const trimForeign     = foreignLit.slice(0, 900)
+  const trimLocal       = localLit.slice(0, 900)
+  const trimTheory      = theoreticalFramework.slice(0, 600)
+  const trimSynthesis   = synthesis.slice(0, 500)
+
+  return `You are an academic research methodologist advising a Filipino university student on their Chapter 3 methodology.
+
+Analyze the study context below and recommend the single most appropriate research design: quantitative, qualitative, or mixed methods.
+
+Statement of the Problem:
+"""
+${sop}
+"""
+
+Research Questions:
+${rqList}
+
+--- Literature Review Summary (Chapter 2) ---
+
+Foreign Studies:
+${trimForeign || '(not yet available)'}
+
+Local Studies (Philippines):
+${trimLocal || '(not yet available)'}
+
+Theoretical Framework:
+${trimTheory || '(not yet available)'}
+
+Synthesis / Research Gap:
+${trimSynthesis || '(not yet available)'}
+
+---
+
+To determine the recommendation:
+1. If the research questions measure, count, or test relationships between variables → lean toward QUANTITATIVE
+2. If the research questions explore experiences, meanings, or perceptions → lean toward QUALITATIVE
+3. If both types of questions are present, or if the literature uses both → lean toward MIXED
+4. Consider what designs were used in the cited foreign and local studies
+5. Consider what the theoretical framework implies about appropriate methodology
+
+Provide a definitive recommendation with 3 concrete, study-specific reasons (not generic definitions).
+The rationale should reference the actual research questions and literature context above.
+
+IMPORTANT: Respond with ONLY a single valid JSON object. No preamble, no markdown fences.
+{
+  "design": "quantitative" | "qualitative" | "mixed",
+  "rationale": "2–3 sentence explanation referencing the specific research questions and literature findings",
+  "keyReasons": [
+    "Specific reason 1 tied to this study",
+    "Specific reason 2 tied to this study",
+    "Specific reason 3 tied to this study"
+  ]
+}`
 }
 
 export function buildEthicsPrompt(

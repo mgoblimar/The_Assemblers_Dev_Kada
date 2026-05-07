@@ -119,6 +119,8 @@ export function CitationSelectStep({ state, onConfirm, aiRunning }: Props) {
         )}
         {visible.map(citation => {
           const isSelected = selected.has(citation.id)
+          const scholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(`${citation.title} ${citation.authorLastName} ${citation.year}`)}`
+
           return (
             <button
               key={citation.id}
@@ -163,6 +165,20 @@ export function CitationSelectStep({ state, onConfirm, aiRunning }: Props) {
                   <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
                     {citation.relevanceSummary}
                   </p>
+
+                  {/* Google Scholar search link — stops propagation so it doesn't toggle selection */}
+                  <a
+                    href={scholarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 mt-2 text-[11px] text-primary hover:underline"
+                  >
+                    <svg className="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                    Search on Google Scholar
+                  </a>
                 </div>
               </div>
             </button>

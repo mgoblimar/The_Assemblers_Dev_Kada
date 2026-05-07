@@ -3,6 +3,12 @@ import type { ChapterState } from '@/lib/db/database'
 
 type Design = 'quantitative' | 'qualitative' | 'mixed'
 
+const DESIGN_LABELS: Record<Design, string> = {
+  quantitative: 'Quantitative',
+  qualitative:  'Qualitative',
+  mixed:        'Mixed Methods',
+}
+
 interface Props {
   state: ChapterState
   onSelect: (design: Design) => void
@@ -57,6 +63,7 @@ const DESIGNS: { value: Design; label: string; description: string; Icon: () => 
 
 export function ResearchDesignStep({ state, onSelect, aiRunning }: Props) {
   const current = state.artifacts.ch3_researchDesign
+  const rec     = state.artifacts.ch3_designRecommendation
 
   return (
     <div className="space-y-4">
@@ -69,9 +76,48 @@ export function ResearchDesignStep({ state, onSelect, aiRunning }: Props) {
         </p>
       </div>
 
+      {/* AI Recommendation panel */}
+      {rec && (
+        <div className="rounded border border-primary/30 bg-primary/5 p-3.5 space-y-2.5">
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <svg className="size-3.5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-primary">
+              AI Recommendation
+            </span>
+            <span className="ml-auto text-[10px] px-2 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary font-bold uppercase tracking-wide">
+              {DESIGN_LABELS[rec.design]}
+            </span>
+          </div>
+
+          {/* Rationale */}
+          <p className="text-sm text-foreground/90 leading-relaxed">{rec.rationale}</p>
+
+          {/* Key reasons */}
+          <ul className="space-y-1">
+            {rec.keyReasons.map((reason, i) => (
+              <li key={i} className="flex items-start gap-2 text-[12px] text-muted-foreground">
+                <span className="mt-0.5 size-3.5 flex-shrink-0 rounded-full border border-primary/40 bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary">
+                  {i + 1}
+                </span>
+                {reason}
+              </li>
+            ))}
+          </ul>
+
+          <p className="text-[11px] text-muted-foreground pt-0.5 border-t border-primary/15">
+            You can accept this recommendation or choose a different design below.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-3">
         {DESIGNS.map(design => {
-          const isSelected = current === design.value
+          const isSelected  = current === design.value
+          const isRecommended = rec?.design === design.value && !current
+
           return (
             <button
               key={design.value}
@@ -81,22 +127,29 @@ export function ResearchDesignStep({ state, onSelect, aiRunning }: Props) {
               className={`w-full text-left rounded border p-4 transition-all cursor-pointer
                 ${isSelected
                   ? 'border-primary bg-primary/5'
-                  : 'border-border bg-card hover:border-primary/40'
+                  : isRecommended
+                    ? 'border-primary/50 bg-primary/[0.03] hover:border-primary'
+                    : 'border-border bg-card hover:border-primary/40'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <div className="flex items-start gap-4">
                 <div className={`mt-0.5 p-2 rounded border flex-shrink-0
-                  ${isSelected ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30'}`}>
+                  ${isSelected || isRecommended ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/30'}`}>
                   <design.Icon />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.05rem' }}>
                       {design.label}
                     </p>
                     {isSelected && (
                       <span className="text-[10px] px-2 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary font-semibold uppercase tracking-wide">
                         Selected
+                      </span>
+                    )}
+                    {isRecommended && (
+                      <span className="text-[10px] px-2 py-0.5 rounded border border-primary/40 bg-primary/10 text-primary font-semibold uppercase tracking-wide">
+                        Recommended
                       </span>
                     )}
                   </div>

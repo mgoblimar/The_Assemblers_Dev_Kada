@@ -16,12 +16,10 @@ const CHAPTERS: { id: ChapterId; label: string; subtitle: string }[] = [
   { id: 'chapter-1', label: 'Chapter 1', subtitle: 'Introduction' },
   { id: 'chapter-2', label: 'Chapter 2', subtitle: 'Review of Literature' },
   { id: 'chapter-3', label: 'Chapter 3', subtitle: 'Methodology' },
-  { id: 'chapter-4', label: 'Chapter 4', subtitle: 'Results & Discussion' },
-  { id: 'chapter-5', label: 'Chapter 5', subtitle: 'Conclusion' },
 ]
 
-// Chapters 4 and 5 are not yet implemented
-const COMING_SOON: ChapterId[] = ['chapter-4', 'chapter-5']
+// Chapters 4 and 5 are hidden for the demo
+const COMING_SOON: ChapterId[] = []
 
 export function ProjectWorkspace({ projectId, onBack }: Props) {
   const [project, setProject]           = useState<ResearchProject | null>(null)
@@ -72,7 +70,7 @@ export function ProjectWorkspace({ projectId, onBack }: Props) {
       </div>
 
       {/* Chapter tabs */}
-      <div className="flex items-stretch gap-1 overflow-x-auto border-b border-border pb-0">
+      <div className="flex items-stretch border-b border-border">
         {CHAPTERS.map(ch => {
           const disabled = isDisabled(ch.id)
           const isActive = activeChapter === ch.id
@@ -83,7 +81,7 @@ export function ProjectWorkspace({ projectId, onBack }: Props) {
               type="button"
               disabled={disabled}
               onClick={() => !disabled && setActiveChapter(ch.id)}
-              className={`flex-shrink-0 px-4 py-2 text-left transition-all border-b-2 -mb-px
+              className={`flex-1 px-4 py-2.5 text-center transition-all border-b-2 -mb-px
                 ${isActive
                   ? 'border-b-primary text-primary bg-primary/5'
                   : disabled

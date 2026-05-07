@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ResearchProject } from '@/lib/db/database'
-import { createProject, getProjects } from '@/lib/db/project-repository'
+import { createProject, getProjects, deleteProject } from '@/lib/db/project-repository'
 import { NewProjectDialog } from './NewProjectDialog'
+import { Trash2 } from 'lucide-react'
 
 interface Props {
   userId?: string
@@ -58,6 +59,13 @@ export function ProjectsDirectory({ userId, onOpenProject, showDialog: controlle
     if (project.id !== undefined) {
       onOpenProject(project.id)
     }
+  }
+
+  async function handleDelete(e: React.MouseEvent, id: number) {
+    e.stopPropagation()
+    if (!confirm('Are you sure you want to delete this project? This cannot be undone.')) return
+    await deleteProject(id, userId)
+    loadProjects()
   }
 
   return (
@@ -161,7 +169,16 @@ export function ProjectsDirectory({ userId, onOpenProject, showDialog: controlle
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground border-t border-border pt-2">{formatDate(project.updatedAt)}</p>
+                <div className="flex items-center justify-between border-t border-border pt-2">
+                  <p className="text-[11px] text-muted-foreground">{formatDate(project.updatedAt)}</p>
+                  <button
+                    onClick={(e) => project.id !== undefined && handleDelete(e, project.id)}
+                    className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    title="Delete project"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
               </div>
             </button>
           ))}

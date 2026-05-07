@@ -122,13 +122,13 @@ export function PeerReview({ onRunStart, userId }: PeerReviewProps) {
           <Button className="w-full gap-2" onClick={handleRun} disabled={loading || !selectedItem}>
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 {phase === 'skeptic'   && 'Skeptic is analyzing…'}
                 {phase === 'advocate'  && 'Advocate is responding…'}
                 {phase === 'synthesis' && 'Editor is synthesizing…'}
               </>
             ) : (
-              <><Sparkles className="w-4 h-4" /> Start Peer Review</>
+              <><Sparkles className="w-3.5 h-3.5" /> Start Peer Review</>
             )}
           </Button>
 

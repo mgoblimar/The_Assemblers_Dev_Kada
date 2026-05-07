@@ -5,6 +5,8 @@ import type {
 // ─── Intents ──────────────────────────────────────────────────────────────────
 
 export type Chapter3Intent =
+  | { type: 'START_DESIGN_AI' }
+  | { type: 'DESIGN_RECOMMENDED'; design: 'quantitative' | 'qualitative' | 'mixed'; rationale: string; keyReasons: string[] }
   | { type: 'SELECT_DESIGN'; design: 'quantitative' | 'qualitative' | 'mixed' }
   | { type: 'SUBMIT_LOCALE'; text: string }
   | { type: 'SUBMIT_SAMPLING'; text: string }
@@ -16,6 +18,7 @@ export type Chapter3Intent =
   | { type: 'RETRY' }
 
 export type Chapter3SideEffect =
+  | 'run_design_recommend'
   | 'run_instruments'
   | 'run_procedure'
   | 'run_analysis'
@@ -58,12 +61,20 @@ const DESIGN_LABELS: Record<'quantitative' | 'qualitative' | 'mixed', string> = 
 function assembleChapter3Markdown(a: ChapterArtifacts): string {
   const designLabel = a.ch3_researchDesign ? DESIGN_LABELS[a.ch3_researchDesign] : 'Descriptive Research'
 
+  // Research design introductory paragraph
+  const designIntro = `This study employed a **${designLabel}** design. ` +
+    (a.ch3_instrumentsSection
+      ? 'The methodology described in this chapter outlines the procedures followed by the researcher in gathering and analyzing the data necessary to address the research questions of the study.'
+      : 'This chapter presents the research methodology, including the research design, locale of the study, sampling technique, instruments, data collection procedure, data analysis, and ethical considerations.')
+
   return [
-    '# Chapter 3: Research Methodology',
+    '# Chapter 3',
+    '',
+    '# Research Methodology',
     '',
     '## Research Design',
     '',
-    `This study employs a **${designLabel}** design. ${a.ch3_instrumentsSection ? '' : ''}`.trim(),
+    designIntro,
     '',
     '## Locale of the Study and Participants',
     '',
@@ -101,6 +112,24 @@ export function chapter3Reduce(
   const merge = (patch: Partial<ChapterArtifacts>): ChapterArtifacts => ({ ...artifacts, ...patch })
 
   switch (intent.type) {
+
+    case 'START_DESIGN_AI': {
+      if (currentStep !== 'method_design_ai') return { next: state }
+      const next = record('method_design_ai', artifacts, history, 'running_ai', 'Requesting design recommendation')
+      return { next: { ...next, id: state.id, projectId: state.projectId }, sideEffect: 'run_design_recommend' }
+    }
+
+    case 'DESIGN_RECOMMENDED': {
+      if (currentStep !== 'method_design_ai') return { next: state }
+      const next = record(
+        'method_design_select',
+        merge({ ch3_designRecommendation: { design: intent.design, rationale: intent.rationale, keyReasons: intent.keyReasons } }),
+        history,
+        'awaiting_user',
+        `AI recommends: ${intent.design}`,
+      )
+      return { next: { ...next, id: state.id, projectId: state.projectId } }
+    }
 
     case 'SELECT_DESIGN': {
       if (currentStep !== 'method_design_select') return { next: state }
@@ -165,6 +194,7 @@ export function chapter3Reduce(
 // ─── Step metadata ────────────────────────────────────────────────────────────
 
 export const CHAPTER3_ORDERED_STEPS: ChapterStepId[] = [
+  'method_design_ai',
   'method_design_select',
   'method_locale_input',
   'method_sampling_input',
@@ -177,6 +207,7 @@ export const CHAPTER3_ORDERED_STEPS: ChapterStepId[] = [
 ]
 
 export const CHAPTER3_AI_STEPS: ChapterStepId[] = [
+  'method_design_ai',
   'method_instrument_generate',
   'method_procedure_generate',
   'method_analysis_generate',
@@ -185,6 +216,7 @@ export const CHAPTER3_AI_STEPS: ChapterStepId[] = [
 
 export function chapter3StepLabel(step: ChapterStepId): string {
   const labels: Partial<Record<ChapterStepId, string>> = {
+    method_design_ai:           'Analyzing Literature…',
     method_design_select:       'Research Design',
     method_locale_input:        'Locale & Participants',
     method_sampling_input:      'Sampling',

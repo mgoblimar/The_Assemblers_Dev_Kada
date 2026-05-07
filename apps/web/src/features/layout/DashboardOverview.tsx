@@ -1,13 +1,14 @@
 import type { ActiveView } from './Sidebar'
 import { ResearchForm } from '@/features/research/ResearchForm'
 import { getResearchItems } from '@/lib/db/research-repository'
+import { getProjects } from '@/lib/db/project-repository'
+import type { ResearchProject } from '@/lib/db/database'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { ArrowRight, BookOpen, BrainCircuit, FileInput, FileText, GraduationCap, HelpCircle, LayoutGrid, PanelRight, PenLine, Search, Sparkles, Users } from 'lucide-react'
-import type { ResearchItem } from '@/lib/db/database'
+import { BookOpen, BrainCircuit, FileInput, FileText, GraduationCap, HelpCircle, LayoutGrid, PanelRight, PenLine, Plus, Search, Sparkles, Users, ArrowRight, Clock } from 'lucide-react'
 
 interface DashboardOverviewProps {
   userId?: string
@@ -20,6 +21,7 @@ interface DashboardOverviewProps {
   onToggleForm: () => void
   onNavigateToView: (view: ActiveView) => void
   onTogglePanel: () => void
+  onOpenProject: (id: number) => void
   refreshTrigger: number
   onItemCountChange: (count: number) => void
 }
@@ -74,6 +76,49 @@ const QUICK_ACTIONS: Array<{ view: ActiveView; label: string; description: strin
   { view: 'help', label: 'Help & Status', description: 'Guide and server statistics.', icon: HelpCircle },
 ]
 
+function RoadmapStep({ step, index, showForm, onToggleForm, onTogglePanel, onNavigateToView }: {
+  step: typeof FLOW_STEPS[0]
+  index: number
+  showForm: boolean
+  onToggleForm: () => void
+  onTogglePanel: () => void
+  onNavigateToView: (view: ActiveView) => void
+}) {
+  const Icon = step.icon
+  const stepAction =
+    step.action === 'form'
+      ? onToggleForm
+      : step.action === 'panel'
+        ? onTogglePanel
+        : () => onNavigateToView(step.action)
+
+  return (
+    <button
+      type="button"
+      onClick={stepAction}
+      className={cn(
+        'relative flex flex-col p-6 rounded-xl border text-left transition-all hover:border-primary/40 hover:bg-muted/30 group bg-card shadow-sm',
+        index === 0 && !showForm && 'ring-2 ring-primary/20 border-primary/40 bg-primary/[0.02]'
+      )}
+    >
+      <div className="mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-heading font-bold text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+        {index + 1}
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary transition-colors">
+            {step.actionLabel}
+          </span>
+          <Icon className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+        </div>
+        <p className="font-bold text-sm leading-tight font-heading">{step.title}</p>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">{step.description}</p>
+      </div>
+    </button>
+  )
+}
+
 export function DashboardOverview({
   userId,
   itemCount,
@@ -85,20 +130,30 @@ export function DashboardOverview({
   onToggleForm,
   onNavigateToView,
   onTogglePanel,
+  onOpenProject,
   refreshTrigger,
   onItemCountChange,
 }: DashboardOverviewProps) {
+  const [projects, setProjects] = useState<ResearchProject[]>([])
+  const [loadingProjects, setLoadingProjects] = useState(true)
+
   useEffect(() => {
     let cancelled = false
 
-    const loadCounts = async () => {
-      const items = await getResearchItems(userId)
+    const loadData = async () => {
+      const [items, projectList] = await Promise.all([
+        getResearchItems(userId),
+        getProjects(userId)
+      ])
+      
       if (!cancelled) {
         onItemCountChange(items.length)
+        setProjects(projectList.slice(0, 3)) // Only show top 3
+        setLoadingProjects(false)
       }
     }
 
-    loadCounts()
+    loadData()
 
     return () => {
       cancelled = true
@@ -115,26 +170,17 @@ export function DashboardOverview({
               <Sparkles className="w-3 h-3" />
               Institutional Hub
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight font-heading">Research Command</h1>
-            <p className="max-w-2xl text-sm text-muted-foreground leading-relaxed">
+            <h1 className="text-5xl font-extrabold tracking-tight select-none" style={{ fontFamily: 'Fraunces, serif' }}>
+              Welcome to Peer<span className="text-primary italic">EvAI</span>
+            </h1>
+            <p className="max-w-2xl text-sm text-muted-foreground leading-relaxed mt-2">
               Welcome to your agentic research environment. Orchestrate multi-step AI workflows, 
               manage academic citations, and synthesize findings into peer-ready manuscripts.
             </p>
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <button 
-              type="button"
-              onClick={() => onToggleForm()} 
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors font-semibold uppercase tracking-widest text-[10px] h-9 px-5 rounded-md cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              {showForm ? 'Hide Form' : 'New Research'}
-            </button>
-            <Button variant="outline" size="sm" onClick={onTogglePanel} className="gap-2 border-border font-semibold uppercase tracking-widest text-[10px] h-9">
-              <PanelRight className="w-3 h-3" />
-              AI Panel
-            </Button>
+            {/* Action buttons removed as per user request */}
           </div>
         </div>
 
@@ -156,49 +202,97 @@ export function DashboardOverview({
           <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-none">Active Flow</Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {FLOW_STEPS.map((step, index) => {
-            const Icon = step.icon
-            const stepAction =
-              step.action === 'form'
-                ? onToggleForm
-                : step.action === 'panel'
-                  ? onTogglePanel
-                  : () => onNavigateToView(step.action)
-
-            return (
-              <button
-                key={step.title}
-                type="button"
-                onClick={stepAction}
-                className={cn(
-                  'relative flex flex-col p-5 rounded-xl border text-left transition-all hover:border-primary/40 hover:bg-muted/30 group bg-card shadow-sm',
-                  index === 0 && !showForm && 'ring-2 ring-primary/20 border-primary/40 bg-primary/[0.02]'
-                )}
-              >
-                <div className="mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-heading font-bold text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  {index + 1}
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary transition-colors">
-                      {step.actionLabel}
-                    </span>
-                    <Icon className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary transition-colors" />
-                  </div>
-                  <p className="font-bold text-sm leading-tight font-heading">{step.title}</p>
-                  <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-3">{step.description}</p>
-                </div>
-
-                {/* Connector line for desktop */}
-                {index < FLOW_STEPS.length - 1 && (
-                  <div className="hidden md:block absolute top-9 -right-2 w-4 h-px bg-border z-0" />
-                )}
-              </button>
-            )
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {FLOW_STEPS.slice(0, 3).map((step, index) => (
+            <RoadmapStep key={step.title} step={step} index={index} showForm={showForm} onToggleForm={onToggleForm} onTogglePanel={onTogglePanel} onNavigateToView={onNavigateToView} />
+          ))}
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          {FLOW_STEPS.slice(3).map((step, index) => (
+            <RoadmapStep key={step.title} step={step} index={index + 3} showForm={showForm} onToggleForm={onToggleForm} onTogglePanel={onTogglePanel} onNavigateToView={onNavigateToView} />
+          ))}
+        </div>
+      </section>
+
+      {/* 3. Research Builder (Main Feature) */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-heading">Research Builder</h2>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.1em]">Academic Paper Construction</p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onNavigateToView('builder')}
+            className="text-xs font-bold text-primary hover:text-primary/80 hover:bg-primary/5 gap-1.5"
+          >
+            View all projects <ArrowRight className="w-3 h-3" />
+          </Button>
+        </div>
+
+        {loadingProjects ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-32 rounded-xl border border-border/50 bg-muted/20 animate-pulse" />
+            ))}
+          </div>
+        ) : projects.length === 0 ? (
+          <Card className="border-dashed bg-muted/10 border-2">
+            <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <FileText className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="font-bold font-heading text-lg">No active projects</h3>
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                Start building your first academic paper chapter by chapter with agentic AI guidance.
+              </p>
+              <Button 
+                onClick={() => onNavigateToView('builder')} 
+                className="mt-6 gap-2 h-9"
+              >
+                <Plus className="w-3.5 h-3.5" /> Create First Project
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {projects.map(project => (
+              <button
+                key={project.id}
+                onClick={() => project.id && onOpenProject(project.id)}
+                className="group flex flex-col p-5 rounded-xl border bg-card text-left transition-all hover:border-primary/40 hover:shadow-md"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-muted/30 border-none">
+                    {project.status}
+                  </Badge>
+                  <Clock className="w-3 h-3 text-muted-foreground/40" />
+                </div>
+                <h3 className="font-bold text-sm leading-tight font-heading group-hover:text-primary transition-colors line-clamp-2 mb-4">
+                  {project.title}
+                </h3>
+                <div className="mt-auto pt-4 border-t flex items-center justify-between text-[10px] text-muted-foreground font-medium">
+                  <span className="flex items-center gap-1">
+                    <BrainCircuit className="w-2.5 h-2.5" /> {project.researchQuestions.length} RQs
+                  </span>
+                  <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
+                </div>
+              </button>
+            ))}
+            
+            {/* Quick New Project Slot */}
+            <button
+              onClick={() => onNavigateToView('builder')}
+              className="flex flex-col items-center justify-center p-5 rounded-xl border border-dashed border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-all group"
+            >
+              <div className="w-8 h-8 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center mb-2 transition-colors">
+                <Plus className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+              </div>
+              <span className="text-xs font-bold text-muted-foreground group-hover:text-primary">New Project</span>
+            </button>
+          </div>
+        )}
       </section>
 
       {showForm && (

@@ -51,15 +51,20 @@ function record(
 
 function assembleChapter2Markdown(a: ChapterArtifacts): string {
   const themeList = (a.ch2_themes ?? []).map((t, i) => `${i + 1}. ${t}`).join('\n')
+  const themeIntro = (a.ch2_themes ?? []).length > 0
+    ? `The following themes guided the review: ${(a.ch2_themes ?? []).join('; ')}.`
+    : ''
 
   return [
-    '# Chapter 2: Review of Related Literature',
+    '# Chapter 2',
+    '',
+    '# Review of Related Literature',
     '',
     '## Introduction',
     '',
-    `This chapter presents a review of related literature and studies, both foreign and local, that are relevant to the present study. The following themes guided the review: ${(a.ch2_themes ?? []).join('; ')}.`,
+    `This chapter presents a comprehensive review of related literature and studies relevant to the present inquiry. The review covers both foreign and local sources and is organized around key thematic areas to provide a thorough theoretical and empirical foundation for the study. ${themeIntro}`,
     '',
-    '## Theoretical / Conceptual Framework',
+    '## Theoretical and Conceptual Framework',
     '',
     a.ch2_theoreticalFramework ?? '',
     '',
@@ -71,13 +76,15 @@ function assembleChapter2Markdown(a: ChapterArtifacts): string {
     '',
     a.ch2_localLiterature ?? '',
     '',
-    '## Synthesis',
+    '## Synthesis of the Literature',
     '',
     a.ch2_synthesis ?? '',
-    '',
-    '## Research Themes',
-    '',
-    themeList,
+    ...(themeList ? [
+      '',
+      '## Research Themes',
+      '',
+      themeList,
+    ] : []),
   ].join('\n').trim()
 }
 

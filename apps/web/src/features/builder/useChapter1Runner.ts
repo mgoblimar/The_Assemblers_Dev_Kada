@@ -2,7 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react'
 import type { ChapterState } from '@/lib/db/database'
 import { getOrCreateChapterState, saveChapterState } from '@/lib/db/project-repository'
 import { chapter1Reduce } from './chapter1.machine'
-import type { Chapter1Intent, SideEffect } from './chapter1.machine'
+import type { Chapter1Intent, SideEffect, RefineSection } from './chapter1.machine'
 import {
   validateSop,
   suggestRqs,
@@ -10,6 +10,7 @@ import {
   suggestObjectives,
   validateObjectives,
   generateSections,
+  generateReferences,
 } from '@/lib/ai/chapter1-client'
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -82,6 +83,14 @@ async function executeSideEffect(
         definitions: sections.definitions,
       }
     }
+    case 'run_references_generate': {
+      const references = await generateReferences(
+        a.background ?? '',
+        a.significance ?? '',
+        a.scopeDelimitation ?? '',
+      )
+      return { type: 'REFERENCES_GENERATED', references }
+    }
     default:
       throw new Error(`Unknown side effect: ${effect}`)
   }
@@ -149,10 +158,11 @@ export function useChapter1Runner(projectId: number | null) {
   }, [])
 
   // ── Convenience dispatchers ───────────────────────────────────────────────
-  const submitSop        = useCallback((text: string)         => send({ type: 'SUBMIT_SOP', text }),               [send])
-  const selectRqs        = useCallback((questions: string[])  => send({ type: 'SELECT_RQS', questions }),          [send])
-  const selectObjectives = useCallback((objectives: string[]) => send({ type: 'SELECT_OBJECTIVES', objectives }),  [send])
-  const retry            = useCallback(()                      => send({ type: 'RETRY' }),                          [send])
+  const submitSop        = useCallback((text: string)           => send({ type: 'SUBMIT_SOP', text }),               [send])
+  const selectRqs        = useCallback((questions: string[])    => send({ type: 'SELECT_RQS', questions }),          [send])
+  const selectObjectives = useCallback((objectives: string[])   => send({ type: 'SELECT_OBJECTIVES', objectives }),  [send])
+  const retry            = useCallback(()                        => send({ type: 'RETRY' }),                          [send])
+  const refineSection    = useCallback((section: RefineSection) => send({ type: 'REFINE_SECTION', section }),        [send])
 
   // "Continue anyway" — force-accepts the current draft by injecting an ok=true validation result
   const continueAnywayFromSop = useCallback((text: string) => {
@@ -193,6 +203,7 @@ export function useChapter1Runner(projectId: number | null) {
     selectRqs,
     selectObjectives,
     retry,
+    refineSection,
     continueAnywayFromSop,
     continueAnywayFromRqs,
     continueAnywayFromObjs,

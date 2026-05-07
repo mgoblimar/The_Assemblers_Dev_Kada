@@ -65,6 +65,30 @@ export async function completeProject(id: number): Promise<void> {
   return updateProject(id, { status: 'completed', completedAt: new Date() })
 }
 
+export async function deleteProject(id: number, userId?: string): Promise<void> {
+  const now = new Date()
+  await db.researchProjects.delete(id)
+  
+  // Also cleanup chapter states for this project
+  await db.chapterStates.where('projectId').equals(id).delete()
+
+  // Clear active project if it was deleted
+  if (getActiveProjectId() === id) {
+    setActiveProjectId(null)
+  }
+
+  await db.outbox.add({
+    userId,
+    entityType: 'research_project',
+    entityId: id,
+    operation: 'delete',
+    payload: {},
+    status: 'pending',
+    retryCount: 0,
+    createdAt: now,
+  })
+}
+
 // ─── Chapter States ───────────────────────────────────────────────────────────
 
 export async function getOrCreateChapterState(

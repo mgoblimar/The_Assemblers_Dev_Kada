@@ -15,8 +15,9 @@ const PROGRESS_MESSAGES: Partial<Record<ChapterStepId, string[]>> = {
   rq_validate:        ['Checking question alignment…', 'Verifying research scope…', 'Assessing feasibility…'],
   obj_suggest:        ['Mapping to your research questions…', 'Crafting measurable objectives…', 'Applying SMART criteria…'],
   obj_validate:       ['Reviewing objective alignment…', 'Checking action verbs…', 'Verifying measurability…'],
-  generate_sections:  ['Writing Background of the Study…', 'Drafting Scope and Delimitation…', 'Composing Significance section…', 'Building Definition of Terms…'],
-  compile_draft:      ['Assembling all components…', 'Formatting Chapter 1…', 'Polishing academic prose…'],
+  generate_sections:        ['Writing Background of the Study…', 'Drafting Scope and Delimitation…', 'Composing Significance section…', 'Building Definition of Terms…'],
+  ch1_references_generate:  ['Extracting inline citations…', 'Formatting APA 7th edition entries…', 'Resolving source URLs…'],
+  compile_draft:            ['Assembling all components…', 'Formatting Chapter 1…', 'Polishing academic prose…'],
   // Chapter 2
   rrl_citations_suggest:    ['Analyzing your research themes…', 'Searching relevant academic sources…', 'Preparing citation suggestions…'],
   rrl_foreign_generate:     ['Searching international literature…', 'Writing foreign studies section…', 'Adding APA citations…'],
@@ -24,6 +25,7 @@ const PROGRESS_MESSAGES: Partial<Record<ChapterStepId, string[]>> = {
   rrl_theoretical_generate: ['Identifying theoretical frameworks…', 'Building conceptual framework…', 'Linking theories to your study…'],
   rrl_synthesis_generate:   ['Synthesizing all literature…', 'Identifying the research gap…', 'Writing synthesis paragraph…'],
   // Chapter 3
+  method_design_ai:           ['Reading your literature review…', 'Identifying research patterns…', 'Formulating methodology recommendation…'],
   method_instrument_generate: ['Designing research instruments…', 'Describing data collection tools…', 'Addressing validity and reliability…'],
   method_procedure_generate:  ['Outlining data collection steps…', 'Writing procedure section…', 'Adding ethical safeguards…'],
   method_analysis_generate:   ['Selecting statistical techniques…', 'Writing data analysis plan…', 'Matching methods to research questions…'],

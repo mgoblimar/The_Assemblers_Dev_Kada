@@ -8,11 +8,13 @@ import {
   buildObjValidatePrompt,
   buildGenerateSectionsPrompt,
   buildCompileDraftPrompt,
+  buildReferencesPrompt,
   parseValidation,
   parseRqSuggestions,
   parseObjSuggestions,
   parseSections,
   parseCompiledDraft,
+  parseReferences,
 } from './chapter1-prompts'
 
 // ─── Provider config ──────────────────────────────────────────────────────────
@@ -84,6 +86,17 @@ export async function generateSections(
   const raw = await ai(buildGenerateSectionsPrompt(sop, selectedRqs, selectedObjectives), MAX_TOKENS_SECTIONS)
   const result = parseSections(raw)
   if (!result) throw new Error('AI returned unexpected format for sections. Please retry.')
+  return result
+}
+
+export async function generateReferences(
+  background: string,
+  significance: string,
+  scopeDelimitation: string,
+): Promise<string> {
+  const raw = await ai(buildReferencesPrompt(background, significance, scopeDelimitation), 2000)
+  const result = parseReferences(raw)
+  if (!result) throw new Error('AI returned unexpected format for references. Please retry.')
   return result
 }
 

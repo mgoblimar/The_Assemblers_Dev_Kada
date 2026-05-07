@@ -73,6 +73,7 @@ export type ChapterStepId =
   | 'obj_select'
   | 'obj_validate'
   | 'generate_sections'
+  | 'ch1_references_generate'
   | 'compile_draft'
   | 'done'
   // ── Chapter 2 ──────────────────────────────────────────
@@ -85,6 +86,7 @@ export type ChapterStepId =
   | 'rrl_synthesis_generate'
   | 'rrl_done'
   // ── Chapter 3 ──────────────────────────────────────────
+  | 'method_design_ai'
   | 'method_design_select'
   | 'method_locale_input'
   | 'method_sampling_input'
@@ -147,6 +149,7 @@ export interface ChapterArtifacts {
   significance?: string
   definitions?: DefinitionEntry[]
   compiledDraft?: string
+  ch1_references?: string   // formatted APA reference list (markdown, separate from draft)
 
   // ── Chapter 2 ────────────────────────────────────────────
   ch2_themes?: string[]
@@ -159,6 +162,11 @@ export interface ChapterArtifacts {
   ch2_compiledDraft?: string
 
   // ── Chapter 3 ────────────────────────────────────────────
+  ch3_designRecommendation?: {
+    design: 'quantitative' | 'qualitative' | 'mixed'
+    rationale: string
+    keyReasons: string[]
+  }
   ch3_researchDesign?: 'quantitative' | 'qualitative' | 'mixed'
   ch3_localeDescription?: string
   ch3_samplingDescription?: string
