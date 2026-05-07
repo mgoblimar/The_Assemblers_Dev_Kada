@@ -5,6 +5,8 @@
 
   **Your AI-Guided Research Paper Companion**
 
+  **[Live Demo](https://the-assemblers-dev-kada.onrender.com/)**
+
   [![DevKada 2026](https://img.shields.io/badge/DevKada-2026-blue?style=flat-square)](https://devkada.com)
   [![The Assemblers](https://img.shields.io/badge/Team-The%20Assemblers-purple?style=flat-square)](#)
   [![Build Anything Build from Anywhere](https://img.shields.io/badge/Theme-Build%20Anything%2C%20Build%20from%20Anywhere-orange?style=flat-square)](#)
@@ -96,7 +98,7 @@ Beyond the chapter builder, PeerEvAI includes a suite of focused research utilit
 |-------|-----------|
 | 🖥️ **Frontend** | React 19 + TypeScript + Tailwind CSS |
 | 🗄️ **Local Storage** | Dexie.js (IndexedDB) — all state lives in your browser |
-| 🤖 **AI Models** | Google Gemini 2.0 Flash · Llama 3.x via Groq |
+| 🤖 **AI Models** | Google Gemini 2.0 Flash · Llama 3.x via Groq · **Cerebras** |
 | 🔄 **State** | Pure reducer state machines per chapter |
 | 📝 **Rendering** | ReactMarkdown + remark-gfm for live draft preview |
 
