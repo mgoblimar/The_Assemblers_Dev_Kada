@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: peerevai
+    runtime: node
+    rootDir: apps/web
+    buildCommand: npm install && npm run build && cd server && npm install
+    startCommand: node server/index.mjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_AI_PROVIDER
+        value: cerebras
+      - key: CEREBRAS_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: VITE_CEREBRAS_MODEL
+        value: llama3.1-8b
+      - key: VITE_GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: VITE_GEMINI_MODEL
+        value: gemini-2.0-flash-lite

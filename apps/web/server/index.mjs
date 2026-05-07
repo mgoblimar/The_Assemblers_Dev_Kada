@@ -2,18 +2,28 @@ import express from 'express'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import puppeteer from 'puppeteer-extra'
-import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 
-puppeteer.use(StealthPlugin())
+// Puppeteer is optional — only needed for /api/scrape
+let puppeteer = null
+try {
+  const puppeteerExtra = await import('puppeteer-extra')
+  const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default
+  puppeteer = puppeteerExtra.default
+  puppeteer.use(StealthPlugin())
+} catch {
+  console.warn('[SERVER] Puppeteer not available — /api/scrape will be disabled')
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// Load .env.local for local dev; on Render env vars are set via dashboard
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
 
 const app = express()
 app.use(express.json())
 
 app.post('/api/scrape', async (req, res) => {
+  if (!puppeteer) return res.status(503).json({ error: 'Scraping not available in this environment' })
   const { url } = req.body
   if (!url) return res.status(400).json({ error: 'URL is required' })
 
@@ -313,5 +323,14 @@ app.post('/api/cerebras', async (req, res) => {
 // health
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
+// Serve React frontend (production build)
+const distPath = path.resolve(__dirname, '../dist')
+app.use(express.static(distPath))
+
+// SPA fallback — all non-API routes serve index.html
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
+
 const PORT = process.env.PORT || 3001
-app.listen(PORT, () => console.log(`Proxy listening on http://localhost:${PORT}`))
+app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`))
