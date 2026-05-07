@@ -91,8 +91,8 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
                     Start Your Library <ArrowRight className="w-4 h-4" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="h-12 px-8 text-sm font-semibold uppercase tracking-widest border-border hover:bg-muted/50 transition-all">
-                  <Link to="/login">View Live Demo</Link>
+                <Button asChild variant="outline" size="lg" className="h-12 px-8 text-sm font-semibold uppercase tracking-widest border-primary/40 text-primary hover:bg-primary/5 transition-all gap-2">
+                  <Link to="/demo">✦ Try Demo — No Sign-in</Link>
                 </Button>
               </>
             )}

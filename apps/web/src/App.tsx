@@ -37,6 +37,7 @@ import { getActiveProjectId, setActiveProjectId, getProjects } from '@/lib/db/pr
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isGuest, setIsGuest] = useState(() => sessionStorage.getItem('peerevai_guest') === 'true')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -49,24 +50,42 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  const enterGuestMode = () => {
+    sessionStorage.setItem('peerevai_guest', 'true')
+    setIsGuest(true)
+  }
+
+  const exitGuestMode = () => {
+    sessionStorage.removeItem('peerevai_guest')
+    setIsGuest(false)
+  }
+
   if (loading) return null
+
+  const canAccessDashboard = !!session || isGuest
 
   return (
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingPage isAuthenticated={!!session} />} />
-          <Route 
-            path="/login" 
-            element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="login" />} 
+          <Route path="/" element={<LandingPage isAuthenticated={!!session || isGuest} />} />
+          <Route path="/demo" element={
+            <DemoRedirect onEnterGuest={enterGuestMode} />
+          } />
+          <Route
+            path="/login"
+            element={canAccessDashboard ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="login" />}
           />
-          <Route 
-            path="/signup" 
-            element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="signup" />} 
+          <Route
+            path="/signup"
+            element={canAccessDashboard ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="signup" />}
           />
-          <Route 
-            path="/dashboard/*" 
-            element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
+          <Route
+            path="/dashboard/*"
+            element={canAccessDashboard
+              ? <Dashboard session={session} isGuest={isGuest} onExitGuest={exitGuestMode} />
+              : <Navigate to="/login" replace />
+            }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -76,9 +95,20 @@ function App() {
   )
 }
 
-function Dashboard({ session }: { session: Session }) {
+function DemoRedirect({ onEnterGuest }: { onEnterGuest: () => void }) {
+  const navigate = useNavigate()
+  useEffect(() => {
+    onEnterGuest()
+    navigate('/dashboard', { replace: true })
+  }, [onEnterGuest, navigate])
+  return null
+}
+
+function Dashboard({ session, isGuest, onExitGuest }: { session: Session | null; isGuest: boolean; onExitGuest: () => void }) {
   const navigate = useNavigate()
   useTheme()
+  const userId = session?.user.id ?? 'guest'
+  const userEmail = session?.user.email ?? 'demo@peerevai.app'
   const [online, setOnline] = useState(navigator.onLine)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -114,11 +144,11 @@ function Dashboard({ session }: { session: Session }) {
     }
   }, [activeView, activeProjectId])
 
-  // Auth sync
+  // Auth sync (skip for guest)
   useEffect(() => {
     if (!session) return
     fetchRemoteData(session.user.id).then(() => setRefreshTrigger(p => p + 1))
-  }, [session])
+  }, [session])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Online/offline
   useEffect(() => {
@@ -130,7 +160,7 @@ function Dashboard({ session }: { session: Session }) {
   }, [])
 
   const triggerSync = useCallback(async (force = false) => {
-    if (isSyncingRef.current || !session) return
+    if (isSyncingRef.current || !session || isGuest) return
     isSyncingRef.current = true
     setIsSyncing(true)
     try {
@@ -147,7 +177,7 @@ function Dashboard({ session }: { session: Session }) {
 
   // Auto-sync when online
   useEffect(() => {
-    if (session && online) triggerSync()
+    if (session && online && !isGuest) triggerSync()
   }, [online, session, triggerSync])
 
   // Outbox count
@@ -159,8 +189,8 @@ function Dashboard({ session }: { session: Session }) {
   useEffect(() => {
     db.aiRuns.count().then(setAiRunCount)
     db.aiRuns.where('prompt').equals('Citation Engine').count().then(setCitationCount)
-    getProjects(session.user.id).then(projects => setProjectCount(projects.length))
-  }, [refreshTrigger, session.user.id])
+    getProjects(userId).then(projects => setProjectCount(projects.length))
+  }, [refreshTrigger, userId])
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -219,14 +249,14 @@ function Dashboard({ session }: { session: Session }) {
   const handleItemCreated = () => {
     setRefreshTrigger(p => p + 1)
     setShowForm(false)
-    if (online && session) triggerSync()
+    if (online && session && !isGuest) triggerSync()
   }
 
   const handleReset = async () => {
-    if (!confirm('Clear all local and remote data for this demo?')) return
+    if (!confirm('Clear all local data for this demo?')) return
     setIsSyncing(true)
     try {
-      if (session) {
+      if (session && !isGuest) {
         await supabase.from('ai_runs').delete().eq('user_id', session.user.id)
         await supabase.from('research_items').delete().eq('user_id', session.user.id)
       }
@@ -330,7 +360,7 @@ function Dashboard({ session }: { session: Session }) {
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col border-r bg-card shrink-0 z-10 transition-all duration-300">
           <Sidebar
-            email={session.user.email ?? ''}
+            email={userEmail}
             isSyncing={isSyncing}
             lastSynced={lastSynced}
             activeView={activeView}
@@ -338,7 +368,10 @@ function Dashboard({ session }: { session: Session }) {
               setActiveView(view)
               localStorage.setItem('activeView', view)
             }}
-            onLogout={() => supabase.auth.signOut()}
+            onLogout={() => {
+              if (isGuest) { onExitGuest(); navigate('/') }
+              else supabase.auth.signOut()
+            }}
             onSync={() => triggerSync(true)}
             isCollapsed={!sidebarOpen}
           />
@@ -348,7 +381,7 @@ function Dashboard({ session }: { session: Session }) {
         <section className="flex-1 flex flex-col min-w-0 min-h-0 bg-background overflow-hidden relative">
           <div className="flex-1 overflow-y-auto min-h-0">
             <MainContent
-              userId={session.user.id}
+              userId={userId}
               activeView={activeView || 'dashboard'}
               showForm={showForm}
               onItemCreated={handleItemCreated}
