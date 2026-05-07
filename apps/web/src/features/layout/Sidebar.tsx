@@ -1,7 +1,6 @@
 import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, LogOut, HelpCircle, Users, Library, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/shared/components/ui/button'
-import logoImg from '@/assets/Logo/LogoWhiteBG-removebg-preview.png'
 
 export type ActiveView = 'dashboard' | 'builder' | 'research' | 'advisor' | 'citations' | 'improve' | 'topics' | 'peer-review' | 'library' | 'help'
 
@@ -67,16 +66,6 @@ export function Sidebar({ email, isSyncing, lastSynced, activeView, onViewChange
 
   return (
     <div className={cn("flex flex-col h-full bg-card transition-all duration-300", isCollapsed ? "w-12" : "w-36")}>
-      {/* Brand */}
-      <div className={cn("flex items-center border-b border-border shrink-0", isCollapsed ? "justify-center py-2.5" : "gap-1.5 px-2.5 py-2.5")}>
-        <img src={logoImg} alt="PeerEvAI" className="h-5 w-auto object-contain shrink-0" />
-        {!isCollapsed && (
-          <span className="font-extrabold text-sm tracking-tight text-foreground leading-none select-none" style={{ fontFamily: 'Fraunces, serif' }}>
-            Peer<span className="text-primary italic">EvAI</span>
-          </span>
-        )}
-      </div>
-
       {/* Nav */}
       <nav className="flex-1 px-1.5 py-3 flex flex-col gap-px overflow-y-auto overflow-x-hidden">
         <NavButton {...DASHBOARD_ITEM} activeView={activeView} onViewChange={onViewChange} isCollapsed={isCollapsed} />
