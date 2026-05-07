@@ -8,7 +8,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { BookOpen, BrainCircuit, FileInput, FileText, GraduationCap, HelpCircle, LayoutGrid, PanelRight, PenLine, Plus, Search, Sparkles, Users, ArrowRight, Clock } from 'lucide-react'
+import { BookOpen, BrainCircuit, CheckCircle2, FileInput, FileText, FlaskConical, GraduationCap, HelpCircle, LayoutGrid, PanelRight, PenLine, Plus, Search, Sparkles, Users, ArrowRight, Clock } from 'lucide-react'
 
 interface DashboardOverviewProps {
   userId?: string
@@ -162,7 +162,7 @@ export function DashboardOverview({
 
   return (
     <div className="px-6 py-8 space-y-10 max-w-6xl mx-auto w-full animate-in fade-in duration-500">
-      {/* 1. Header & Status Strip */}
+      {/* 1. Header */}
       <header className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
@@ -178,13 +178,10 @@ export function DashboardOverview({
               manage academic citations, and synthesize findings into peer-ready manuscripts.
             </p>
           </div>
-          
-          <div className="flex flex-wrap gap-2">
-            {/* Action buttons removed as per user request */}
-          </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard label="Research items" value={itemCount} icon={LayoutGrid} />
           <StatCard label="Projects" value={projectCount} icon={FileText} />
           <StatCard label="AI runs" value={aiRunCount} icon={Sparkles} />
@@ -192,29 +189,7 @@ export function DashboardOverview({
         </div>
       </header>
 
-      {/* 2. Methodology Roadmap */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between border-b pb-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold font-heading">Methodology Roadmap</h2>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.1em]">Recommended Research Lifecycle</p>
-          </div>
-          <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-none">Active Flow</Badge>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {FLOW_STEPS.slice(0, 3).map((step, index) => (
-            <RoadmapStep key={step.title} step={step} index={index} showForm={showForm} onToggleForm={onToggleForm} onTogglePanel={onTogglePanel} onNavigateToView={onNavigateToView} />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-          {FLOW_STEPS.slice(3).map((step, index) => (
-            <RoadmapStep key={step.title} step={step} index={index + 3} showForm={showForm} onToggleForm={onToggleForm} onTogglePanel={onTogglePanel} onNavigateToView={onNavigateToView} />
-          ))}
-        </div>
-      </section>
-
-      {/* 3. Research Builder (Main Feature) */}
+      {/* 2. Research Builder (Primary Focus) */}
       <section className="space-y-6">
         <div className="flex items-center justify-between border-b pb-4">
           <div className="space-y-1">
@@ -232,7 +207,7 @@ export function DashboardOverview({
         </div>
 
         {loadingProjects ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-32 rounded-xl border border-border/50 bg-muted/20 animate-pulse" />
             ))}
@@ -256,7 +231,7 @@ export function DashboardOverview({
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {projects.map(project => (
               <button
                 key={project.id}
@@ -295,6 +270,36 @@ export function DashboardOverview({
         )}
       </section>
 
+      {/* 3. Methodology Roadmap */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-heading">Methodology Roadmap</h2>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.1em]">Recommended Research Lifecycle</p>
+          </div>
+          <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-none">Active Flow</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {FLOW_STEPS.slice(0, 3).map((step, index) => (
+            <RoadmapStep key={step.title} step={step} index={index} showForm={showForm} onToggleForm={onToggleForm} onTogglePanel={onTogglePanel} onNavigateToView={onNavigateToView} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          {FLOW_STEPS.slice(3).map((step, index) => (
+            <RoadmapStep key={step.title} step={step} index={index + 3} showForm={showForm} onToggleForm={onToggleForm} onTogglePanel={onTogglePanel} onNavigateToView={onNavigateToView} />
+          ))}
+        </div>
+      </section>
+
+      {/* 4. Stats Row */}
+      <section className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard label="Research items" value={itemCount} icon={LayoutGrid} />
+        <StatCard label="Projects" value={projectCount} icon={FileText} />
+        <StatCard label="AI runs" value={aiRunCount} icon={Sparkles} />
+        <StatCard label="Citations" value={citationCount} icon={BookOpen} />
+      </section>
+
       {showForm && (
         <section className="rounded-xl border bg-card shadow-md overflow-hidden animate-in slide-in-from-top-4 duration-300">
           <div className="border-b bg-muted/20 px-6 py-4 flex items-center justify-between">
@@ -314,63 +319,119 @@ export function DashboardOverview({
         </section>
       )}
 
-      {/* 3. Bottom Grid */}
-      <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <Card className="border shadow-sm rounded-xl overflow-hidden">
-          <CardHeader className="space-y-1 bg-muted/20 pb-4 border-b">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-              <LayoutGrid className="w-3.5 h-3.5" />
-              Quick Actions
-            </div>
-            <CardTitle className="text-lg font-heading">Scholarly Toolset</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 p-6">
-            {QUICK_ACTIONS.map(({ view, label, description, icon: Icon }) => (
-              <button
-                key={view}
-                type="button"
-                onClick={() => onNavigateToView(view)}
-                className="rounded-xl border p-4 text-left transition-all hover:border-primary/40 hover:bg-muted/30 group bg-background/50"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-lg bg-primary/10 p-2.5 text-primary group-hover:scale-110 transition-transform">
-                    <Icon className="h-4 w-4" />
+      {/* 5. Scholarly Toolset Row */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-heading">Scholarly Toolset</h2>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.1em]">Quick Actions & Utilities</p>
+          </div>
+          <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-none">9 Active Tools</Badge>
+        </div>
+        
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {QUICK_ACTIONS.map(({ view, label, description, icon: Icon }) => (
+            <button
+              key={view}
+              type="button"
+              onClick={() => onNavigateToView(view)}
+              className="rounded-xl border p-4 text-left transition-all hover:border-primary/40 hover:bg-muted/30 group bg-card shadow-sm flex items-start gap-4"
+            >
+              <div className="rounded-lg bg-primary/10 p-2.5 text-primary group-hover:scale-110 transition-transform shrink-0">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-sm leading-tight font-heading group-hover:text-primary transition-colors">{label}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">{description}</p>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary transition-colors mt-1" />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 6. Institutional Memo Row */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-heading">Institutional Memo</h2>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.1em]">Academic Standards & Research Promise</p>
+          </div>
+        </div>
+
+        <Card className="border shadow-sm rounded-xl overflow-hidden bg-card">
+          <CardContent className="p-0 flex flex-col xl:flex-row">
+            <div className="p-8 space-y-8 flex-1 border-b xl:border-b-0 xl:border-r border-border/50">
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-primary/10 p-2 rounded-full h-fit shrink-0">
+                    <CheckCircle2 className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <p className="font-bold text-sm leading-tight font-heading">{label}</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{description}</p>
+                    <h4 className="font-bold text-sm font-heading mb-1">Immutable Foundation</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your inputs become permanent research items, serving as the bedrock for agentic analysis and synthesis.
+                    </p>
                   </div>
                 </div>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-sm rounded-xl overflow-hidden flex flex-col">
-          <CardHeader className="space-y-1 bg-muted/20 pb-4 border-b">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-              <GraduationCap className="w-3.5 h-3.5" />
-              Institutional Memo
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-primary/10 p-2 rounded-full h-fit shrink-0">
+                    <FlaskConical className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm font-heading mb-1">Validation First</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      This environment prioritizes rigorous validation over raw generation to ensure the highest academic standards.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="mt-1 bg-primary/10 p-2 rounded-full h-fit shrink-0">
+                    <Users className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm font-heading mb-1">Peer Ready</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Every stage of the workflow is designed to produce manuscripts that are defensible and ready for peer review.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <CardTitle className="text-lg font-heading">The Research Promise</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5 p-6 text-sm text-muted-foreground leading-relaxed flex-1">
-            <p>
-              Your inputs become immutable research items. Each item serves as the foundation for 
-              agentic analysis, reference discovery, and critical peer synthesis.
-            </p>
-            <p>
-              This environment is designed for **validation** over generation. Maintain the highest 
-              standards of academic integrity through every stage of the workflow.
-            </p>
-            <div className="rounded-lg border bg-primary/5 p-4 text-[10px] text-foreground font-medium border-primary/10">
-              <p className="font-bold text-primary uppercase tracking-widest mb-2">Optimal Sequence</p>
-              <ol className="space-y-1.5 list-decimal list-inside text-muted-foreground">
-                <li>Capture deep-portal input</li>
-                <li>Execute agentic analysis</li>
-                <li>Synthesize topic outlines</li>
-                <li>Verify via peer review</li>
-              </ol>
+
+            <div className="p-8 flex-1 bg-muted/5">
+              <div className="rounded-xl border bg-background p-6 border-border/60 relative overflow-hidden group h-full flex flex-col justify-center">
+                <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
+                  <Sparkles className="w-32 h-32 text-primary" />
+                </div>
+                
+                <p className="font-bold text-primary text-[10px] uppercase tracking-[0.2em] mb-6">Optimal Research Sequence</p>
+                
+                <div className="grid sm:grid-cols-2 gap-6 relative z-10">
+                  {[
+                    { t: 'Capture', d: 'Seed deep-portal input' },
+                    { t: 'Analyze', d: 'Execute agentic workflows' },
+                    { t: 'Synthesize', d: 'Construct topic outlines' },
+                    { t: 'Verify', d: 'Finalize via peer review' }
+                  ].map((s, i) => (
+                    <div key={s.t} className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {i + 1}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold leading-none mb-1">{s.t}</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">{s.d}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-dashed">
+                  <p className="text-[11px] text-muted-foreground italic text-center leading-relaxed">
+                    "Maintain the highest standards of academic integrity through every stage of the workflow."
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

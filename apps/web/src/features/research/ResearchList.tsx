@@ -4,6 +4,7 @@ import { getResearchItems } from '@/lib/db/research-repository'
 import { ResearchCard } from './ResearchCard'
 import { Badge } from '@/shared/components/ui/badge'
 import { FileText, Loader2 } from 'lucide-react'
+import type { ActiveView } from '../layout/Sidebar'
 
 interface ResearchListProps {
   userId?: string
@@ -12,9 +13,10 @@ interface ResearchListProps {
   onAnalyze: (item: ResearchItem) => void
   onViewDetails: (itemId: number) => void
   onItemCountChange: (count: number) => void
+  onNavigate?: (view: ActiveView) => void
 }
 
-export function ResearchList({ userId, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onItemCountChange }: ResearchListProps) {
+export function ResearchList({ userId, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onItemCountChange, onNavigate }: ResearchListProps) {
   const [items, setItems] = useState<ResearchItem[]>([])
   const [aiRunCounts, setAiRunCounts] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState(true)
@@ -184,8 +186,8 @@ export function ResearchList({ userId, refreshTrigger, analyzingItemId, onAnalyz
             isAnalyzing={item.id === analyzingItemId}
             onAnalyze={onAnalyze}
             onViewDetails={(item) => item.id && onViewDetails(item.id)}
-          />
-        ))}
+            onNavigate={onNavigate}
+            />        ))}
       </div>
     </div>
   )

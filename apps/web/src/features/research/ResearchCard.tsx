@@ -3,6 +3,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { ResearchItem } from '@/lib/db/database'
+import type { ActiveView } from '../layout/Sidebar'
 
 type ResearchType = 'quantitative' | 'qualitative' | 'mixed' | 'research'
 
@@ -12,6 +13,7 @@ interface ResearchCardProps {
   isAnalyzing: boolean
   onAnalyze: (item: ResearchItem) => void
   onViewDetails: (item: ResearchItem) => void
+  onNavigate?: (view: ActiveView) => void
 }
 
 function detectType(title: string, text: string): ResearchType {
@@ -38,7 +40,7 @@ const TYPE_LABELS: Record<ResearchType, string> = {
   research:     'Research',
 }
 
-export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewDetails }: ResearchCardProps) {
+export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewDetails, onNavigate }: ResearchCardProps) {
   const type = detectType(item.title, item.sourceText)
 
   const syncIcon = item.syncStatus === 'synced'
@@ -106,7 +108,10 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
             size="sm"
             className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
             title="Improve Writing"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate?.('improve');
+            }}
           >
             <PenLine className="w-3 h-3" />
             Improve
@@ -116,7 +121,10 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
             size="sm"
             className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
             title="Find Citations"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate?.('citations');
+            }}
           >
             <BookmarkPlus className="w-3 h-3" />
             Cite

@@ -6,7 +6,7 @@ import { getAIRunsForItem } from '@/lib/db/research-repository'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import {
-  FileText, Loader2, Sparkles, CheckCircle2, XCircle, Clock, History, ChevronDown, ChevronUp, X,
+  FileText, Loader2, Sparkles, CheckCircle2, XCircle, Clock, History, ChevronDown, ChevronUp, X, PenLine, BookmarkPlus,
 } from 'lucide-react'
 import {
   Dialog,
@@ -14,15 +14,17 @@ import {
 } from '@/shared/components/ui/dialog'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import type { ActiveView } from '../layout/Sidebar'
 
 interface ResearchDetailsModalProps {
   itemId: number | null
   onClose: () => void
+  onNavigate?: (view: ActiveView) => void
 }
 
 type Tab = 'report' | 'source' | 'history'
 
-export function ResearchDetailsModal({ itemId, onClose }: ResearchDetailsModalProps) {
+export function ResearchDetailsModal({ itemId, onClose, onNavigate }: ResearchDetailsModalProps) {
   const [item, setItem] = useState<ResearchItem | null>(null)
   const [aiRuns, setAiRuns] = useState<AIRun[]>([])
   const [loading, setLoading] = useState(false)
@@ -57,21 +59,44 @@ export function ResearchDetailsModal({ itemId, onClose }: ResearchDetailsModalPr
   const latestRun = aiRuns[0] ?? null
   const olderRuns = aiRuns.slice(1)
 
+  const handleAction = (view: ActiveView) => {
+    onClose()
+    if (onNavigate) onNavigate(view)
+  }
+
   return (
     <Dialog open={!!itemId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-3xl h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
 
         {/* Header */}
         <div className="px-6 pt-5 pb-4 border-b shrink-0">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold leading-snug truncate pr-2">{item?.title ?? '…'}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {item ? new Date(item.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : ''}
-                {latestRun && (
-                  <> &middot; {latestRun.provider} &middot; {latestRun.model}</>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-muted-foreground">
+                  {item ? new Date(item.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : ''}
+                  {latestRun && (
+                    <> &middot; {latestRun.provider} &middot; {latestRun.model}</>
+                  )}
+                </p>
+                {item && (
+                  <div className="flex gap-1.5 ml-2 border-l pl-3">
+                    <button 
+                      onClick={() => handleAction('improve')}
+                      className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <PenLine className="w-2.5 h-2.5" /> Improve
+                    </button>
+                    <button 
+                      onClick={() => handleAction('citations')}
+                      className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <BookmarkPlus className="w-2.5 h-2.5" /> Cite
+                    </button>
+                  </div>
                 )}
-              </p>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -106,7 +131,7 @@ export function ResearchDetailsModal({ itemId, onClose }: ResearchDetailsModalPr
         </div>
 
         {/* Body */}
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0 bg-muted/5">
           <div className="px-6 py-5">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -161,8 +186,8 @@ export function ResearchDetailsModal({ itemId, onClose }: ResearchDetailsModalPr
                             <p className="text-xs opacity-80">{latestRun.output || 'Unknown error'}</p>
                           </div>
                         ) : latestRun.output ? (
-                          <div className="rounded-xl border bg-card p-5">
-                            <div className="prose prose-sm max-w-none
+                          <div className="rounded-xl border bg-card p-5 overflow-hidden shadow-sm">
+                            <div className="prose prose-sm max-w-none break-words
                               prose-headings:font-bold prose-headings:text-foreground
                               prose-p:text-muted-foreground prose-p:leading-relaxed
                               prose-li:text-muted-foreground
@@ -188,7 +213,7 @@ export function ResearchDetailsModal({ itemId, onClose }: ResearchDetailsModalPr
                       <FileText className="w-3.5 h-3.5" />
                       Source Text
                     </div>
-                    <div className="rounded-xl border bg-muted/30 p-5 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    <div className="rounded-xl border bg-muted/30 p-5 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
                       {item?.sourceText || '—'}
                     </div>
                   </div>

@@ -116,9 +116,9 @@ function Dashboard({ session, isGuest, onExitGuest }: { session: Session | null;
   const [lastSynced, setLastSynced] = useState('not synced')
   const [activeView, setActiveView] = useState<ActiveView>(() => {
     const saved = localStorage.getItem('activeView') as ActiveView | null
-    // If a project was open when the user left, restore the builder view
+    if (saved) return saved
+    // If no saved view, default to builder if a project was active, otherwise dashboard
     const hadProject = !!localStorage.getItem('activeProjectId')
-    if (saved && saved !== 'dashboard') return saved
     if (hadProject) return 'builder'
     return 'dashboard'
   })
@@ -283,6 +283,11 @@ function Dashboard({ session, isGuest, onExitGuest }: { session: Session | null;
         ? { label: 'New Project', onClick: () => setShowNewProjectDialog(true) }
         : null
 
+  const handleViewChange = (view: ActiveView) => {
+    setActiveView(view)
+    localStorage.setItem('activeView', view)
+  }
+
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Persistent Top Header */}
@@ -364,10 +369,7 @@ function Dashboard({ session, isGuest, onExitGuest }: { session: Session | null;
             isSyncing={isSyncing}
             lastSynced={lastSynced}
             activeView={activeView}
-            onViewChange={(view) => {
-              setActiveView(view)
-              localStorage.setItem('activeView', view)
-            }}
+            onViewChange={handleViewChange}
             onLogout={() => {
               if (isGuest) { onExitGuest(); navigate('/') }
               else supabase.auth.signOut()
@@ -398,10 +400,7 @@ function Dashboard({ session, isGuest, onExitGuest }: { session: Session | null;
               aiRunCount={aiRunCount}
               citationCount={citationCount}
               projectCount={projectCount}
-              onNavigateToView={(view) => {
-                setActiveView(view)
-                localStorage.setItem('activeView', view)
-              }}
+              onNavigateToView={handleViewChange}
               onTogglePanel={togglePanel}
               activeProjectId={activeProjectId}
               onOpenProject={handleOpenProject}
@@ -429,6 +428,7 @@ function Dashboard({ session, isGuest, onExitGuest }: { session: Session | null;
       <ResearchDetailsModal
         itemId={selectedResearchItemId}
         onClose={() => setSelectedResearchItemId(null)}
+        onNavigate={handleViewChange}
       />
     </div>
   )
@@ -509,6 +509,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm
           onAnalyze={onAnalyze}
           onViewDetails={onViewDetails}
           onItemCountChange={onItemCountChange}
+          onNavigate={onNavigateToView}
         />
       </div>
     )
