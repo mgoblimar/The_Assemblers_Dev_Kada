@@ -1,104 +1,107 @@
-# AIPeer: Your AI Research Peer Reviewer
+# PeerEvAI — Your AI Research Guide
 
 **DevKada 2026 Hackathon | The Assemblers**
-
-**AIPeer** is a high-performance, offline-first research assistant that bridges the gap between artificial intelligence and rigorous academic peer review. It serves as an "agentic peer in your pocket," helping scholars and professional researchers organize, analyze, and validate their research libraries with surgical precision.
-
-## 🚀 The Core Vision
-The name **AIPeer** represents the perfect synergy of **AI Intelligence** and **Research Peer Review**. While traditional AI tools focus on generation, AIPeer focuses on **validation, critical analysis, and synthesis**, mirroring the role of a highly qualified research peer.
+*Build Anything, Build from Anywhere*
 
 ---
 
-## 🏗️ Architecture Overview
+## The Problem
 
-### 1. Offline-First Foundation (Local-First)
-*   **Database:** Powered by **Dexie (IndexedDB)** for robust browser-side storage.
-*   **Availability:** Every action (creation, editing, AI execution) is possible offline.
-*   **Outbox Pattern:** Changes are queued locally and automatically synchronized to the cloud when a connection is restored.
+Starting a research paper is hard — not because researchers lack ideas, but because nobody ever truly teaches the structure. Every chapter has unspoken rules: how to frame research questions, how to connect literature to methodology, how to write an objectives section that actually mirrors your RQs. Most students figure it out by imitation, by trial and error, or not at all.
 
-### 2. Agentic AI Layer (The "Peer" Reviewer)
-*   **Multi-Step Workflow:** Unlike simple summarizers, our agent performs a 3-step pipeline: **Summarize → Extract Actions → Categorize**.
-*   **Advanced Advisors:** Specialized workflows for Methodology Analysis, Citation Discovery, and Improvement Suggestions.
-*   **History & Audit:** Every AI execution is stored as an "AI Run" with a full timeline of steps and outputs.
+The chapters are also sequentially dependent in ways that are easy to break. A weak Chapter 1 cascades into a poorly focused Chapter 2. A Chapter 2 that doesn't support your research design leaves Chapter 3 hanging. There is no tool that walks you through this dependency chain step by step — just blank pages and anxiety.
 
-### 3. Real-time Sync & Security
-*   **Backend:** **Supabase** handles cloud persistence and real-time data broadcasting.
-*   **Security:** Full **Supabase Auth** integration with Row-Level Security (RLS) to ensure user data privacy.
+**PeerEvAI** exists to change that.
 
 ---
 
-## 📈 The Implementation Journey (Phases)
+## What PeerEvAI Does
 
-| Phase | Feature | Description |
-| :--- | :--- | :--- |
-| **Phase 1** | **Foundation** | Vite + TS + Tailwind setup. |
-| **Phase 2** | **Offline CRUD** | Research input/list with local persistence. |
-| **Phase 3** | **Cloud AI** | Gemini/Groq adapters and Agentic Workflows. |
-| **Phase 4** | **Academic Scrape**| Puppeteer-based deep scraping for science portals. |
-| **Phase 5** | **Cloud Sync** | Outbox processor and Supabase integration. |
-| **Phase 6** | **Advisor** | AI-driven methodology and gap analysis. |
-| **Phase 7** | **Citations** | Academic reference discovery and formatting. |
-| **Phase 8-13**| **Expert Suite** | Thesis outlines, bias detection, and local LLMs. |
-| **Phase 14**| **Launch & Polish**| Final hardening, testing, and professional UX with AIPeer branding. |
+PeerEvAI is an AI-guided academic research paper builder. It doesn't write your paper for you — it acts like a thesis adviser that walks alongside you, asking the right questions at each step, generating drafts you can refine, and carrying context from one chapter into the next.
+
+Think of it less as an AI that builds everything on its own, and more as a structured guide that produces a real working draft you can actually submit, iterate on, or hand to your adviser.
+
+### Chapter Builder
+
+The core workflow covers the first three chapters of a standard academic research paper:
+
+| Chapter | Content |
+|---------|---------|
+| **Chapter 1** | Background of the Study, Statement of the Problem, Research Objectives, Significance of the Study, Scope and Delimitation, Definition of Terms |
+| **Chapter 2** | Review of Related Literature — Foreign Studies, Local Studies, Theoretical & Conceptual Framework, Synthesis |
+| **Chapter 3** | Research Methodology — AI-recommended research design (Quantitative / Qualitative / Mixed), Locale & Participants, Sampling, Instruments, Procedure, Data Analysis, Ethical Considerations |
+
+Each chapter is gated: Chapter 2 and 3 unlock only after Chapter 1 is complete, preserving the dependency chain that makes research coherent.
+
+At every step, the AI generates a draft section. You review it, refine it, and move on. At the end of each chapter, a compiled draft is ready to download as a formatted `.md` file.
+
+### Supplementary Tools
+
+Beyond the chapter builder, PeerEvAI includes a suite of focused research utilities:
+
+- **Research Items** — Manage and annotate your collected sources
+- **Topic Builder** — Explore and narrow down research topics with AI assistance
+- **Citations** — Generate and format academic references in APA style
+- **Improve Writing** — Paste any draft section and get targeted rewrite suggestions
+- **Peer Review** — Get structured feedback on your writing as if from a peer reviewer
+- **Ask My Library** — Query across your saved research items using natural language
+- **Analysis Advisor** — Get guidance on which statistical or qualitative analysis method fits your data
 
 ---
 
-## 🛠️ Technical Stack
-*   **Frontend:** React 19, TypeScript, Shadcn UI, Tailwind CSS.
-*   **Local DB:** Dexie.js (IndexedDB).
-*   **Cloud DB/Auth:** Supabase.
-*   **AI Models:** Google Gemini 2.0 Flash, Llama 3.3 (via Groq).
-*   **Server:** Node.js Express Proxy (for API security and Scraping).
-*   **Testing:** Vitest.
+## How It Works
+
+1. Create a project and enter your research topic (SOP — Statement of the Problem)
+2. PeerEvAI generates Research Questions → you pick or edit them
+3. PeerEvAI generates Research Objectives aligned to your RQs → you confirm
+4. PeerEvAI writes each section of Chapter 1 with references
+5. Chapter 2 opens: themes are pre-populated from Chapter 1; you confirm and watch literature sections generate
+6. Chapter 3 opens: AI reads your Chapter 2 literature and recommends a research design with rationale; you proceed through methodology sections
+7. Download each chapter as a clean `.md` file ready for further formatting
 
 ---
 
-## 🏃 Quick Start for Collaborators
+## Tech Stack
 
-Follow these steps exactly to get the project running on your local machine.
+- **Frontend:** React 19, TypeScript, Tailwind CSS
+- **Local DB:** Dexie.js (IndexedDB) — all chapter state persists locally in the browser
+- **AI:** Google Gemini 2.0 Flash via OpenRouter, Llama 3.x via Groq
+- **State:** Pure reducer state machines per chapter (no external state library)
 
-### 1. Clone the Repository
+> **Note:** PeerEvAI currently runs fully locally. All data is stored in your browser via IndexedDB. Cloud sync is not yet enabled.
+
+---
+
+## Quick Start
+
 ```bash
-git clone <your-repo-url>
+# Clone
+git clone <repo-url>
 cd The_Assemblers_Dev_Kada
-```
 
-### 2. Install All Dependencies
-We use a unified command to install packages for the Frontend, the Backend Server, and the Root.
-```bash
+# Install
 npm run install:all
-```
 
-### 3. Setup Environment Variables
-You must set up your keys for the AI and Sync to work.
-1.  Navigate to the web app folder: `cd apps/web`
-2.  Create a local env file: `cp .env.example .env.local`
-3.  Open `.env.local` and paste the **Supabase URL**, **Anon Key**, and **Groq/Gemini API Keys**.
-    *   *Ask the team lead for these keys if you don't have them.*
+# Configure environment
+cd apps/web
+cp .env.example .env.local
+# Add your Groq / OpenRouter / Gemini API key to .env.local
 
-### 4. Run the Development Environment
-Go back to the project root and start everything:
-```bash
-# Return to root if you are in apps/web
-cd ../.. 
-
-# Start Frontend (Port 5173) + Backend Server (Port 3001)
+# Run
+cd ../..
 npm run dev:all
 ```
 
-### 5. Open the App
-Visit [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## 💡 Demo Script
-1.  **Landing Page:** Explore the new **AIPeer** landing page showcasing the AI + Peer Review synergy.
-2.  **Go Offline:** Create a research item to show local persistence.
-3.  **Reconnect:** Watch the "Synced" badge turn green as data hits Supabase.
-4.  **Agentic Run:** Trigger "Deep Insight" to show the multi-step AI workflow.
-5.  **Web Scraping:** Paste a Wikipedia link to see the app ingest a live webpage.
+## Team
+
+The Assemblers — DevKada 2026
 
 ---
 
-## 📝 License
-MIT | The Assemblers 2026
+## License
+
+MIT
