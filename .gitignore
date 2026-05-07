@@ -1,12 +1,12 @@
 # Local planning docs (do NOT track)
 docs/
 
-# Main documentation files (DO track these!)
-!PROGRESS.md
-!ARCHITECTURE.md
-!FEATURES.md
-!HANDOFF.md
-!DECISIONS.md
+# Claude Code & agent config
+.claude/
+.agent
+
+# Design system (local only)
+design-system/
 
 # Logs
 logs
