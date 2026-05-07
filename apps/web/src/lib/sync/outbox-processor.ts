@@ -21,7 +21,7 @@ export async function processOutbox(includeFailed = false) {
             user_id: entry.userId,
             title,
             source_text: sourceText,
-            created_at: new Date(createdAt).toISOString(),
+            created_at: new Date(createdAt as string).toISOString(),
             updated_at: new Date().toISOString(),
           })
         error = pgError
@@ -40,7 +40,7 @@ export async function processOutbox(includeFailed = false) {
             output,
             status,
             steps,
-            created_at: new Date(createdAt).toISOString(),
+            created_at: new Date(createdAt as string).toISOString(),
           })
         error = pgError
       }

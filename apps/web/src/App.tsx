@@ -28,6 +28,9 @@ import { LandingPage } from '@/features/landing/LandingPage'
 import { ResearchDetailsModal } from '@/features/research/ResearchDetailsModal'
 import { Search, Plus, Trash2, PanelLeft, PanelRight, Home } from 'lucide-react'
 import { DashboardOverview } from '@/features/layout/DashboardOverview'
+import { ProjectsDirectory } from '@/features/builder/ProjectsDirectory'
+import { ProjectWorkspace } from '@/features/builder/ProjectWorkspace'
+import { getActiveProjectId, setActiveProjectId } from '@/lib/db/project-repository'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -76,7 +79,14 @@ function Dashboard({ session }: { session: Session }) {
   const [isSyncing, setIsSyncing] = useState(false)
     const isSyncingRef = useRef(false)
   const [lastSynced, setLastSynced] = useState('not synced')
-  const [activeView, setActiveView] = useState<ActiveView>('dashboard')
+  const [activeView, setActiveView] = useState<ActiveView>(() => {
+    const saved = localStorage.getItem('activeView') as ActiveView | null
+    // If a project was open when the user left, restore the builder view
+    const hadProject = !!localStorage.getItem('activeProjectId')
+    if (saved && saved !== 'dashboard') return saved
+    if (hadProject) return 'builder'
+    return 'dashboard'
+  })
   const [showForm, setShowForm] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeRunId, setActiveRunId] = useState<number | null>(null)
@@ -90,6 +100,15 @@ function Dashboard({ session }: { session: Session }) {
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem('panel-open') !== 'false')
   const [selectedResearchItemId, setSelectedResearchItemId] = useState<number | null>(null)
   const [analyzingItemId, setAnalyzingItemId] = useState<number | null>(null)
+  const [activeProjectId, setActiveProjectIdState] = useState<number | null>(() => getActiveProjectId())
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false)
+
+  // Close the builder dialog when the user navigates away from the directory
+  useEffect(() => {
+    if (activeView !== 'builder' || activeProjectId !== null) {
+      setShowNewProjectDialog(false)
+    }
+  }, [activeView, activeProjectId])
 
   // Auth sync
   useEffect(() => {
@@ -154,6 +173,18 @@ function Dashboard({ session }: { session: Session }) {
     })
   }
 
+  const handleOpenProject = (id: number) => {
+    setActiveProjectId(id)
+    setActiveProjectIdState(id)
+    setActiveView('builder')
+    localStorage.setItem('activeView', 'builder')
+  }
+
+  const handleBackToDirectory = () => {
+    setActiveProjectId(null)
+    setActiveProjectIdState(null)
+  }
+
   const handleAnalyze = async (item: ResearchItem) => {
     if (!item.id) return
     setAnalyzingItemId(item.id)
@@ -209,6 +240,14 @@ function Dashboard({ session }: { session: Session }) {
     setItemCount(count)
   }, [])
 
+  // Context-aware top bar action — only shown when meaningful for the current view
+  const topBarAction =
+    activeView === 'research'
+      ? { label: 'New Research', onClick: () => setShowForm(v => !v) }
+      : activeView === 'builder' && activeProjectId === null
+        ? { label: 'New Project', onClick: () => setShowNewProjectDialog(true) }
+        : null
+
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* 3-column body */}
@@ -222,7 +261,10 @@ function Dashboard({ session }: { session: Session }) {
               isSyncing={isSyncing}
               lastSynced={lastSynced}
               activeView={activeView}
-              onViewChange={setActiveView}
+              onViewChange={(view) => {
+                setActiveView(view)
+                localStorage.setItem('activeView', view)
+              }}
               onLogout={() => supabase.auth.signOut()}
               onSync={() => triggerSync(true)}
               onHelp={() => setShowHelp(true)}
@@ -274,14 +316,16 @@ function Dashboard({ session }: { session: Session }) {
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
-            <Button
-              size="sm"
-              className="h-8 gap-1.5 text-xs font-semibold"
-              onClick={() => setShowForm(v => !v)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              New Research
-            </Button>
+            {topBarAction && (
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-semibold"
+                onClick={topBarAction.onClick}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {topBarAction.label}
+              </Button>
+            )}
 
             {/* AI panel toggle */}
             <Button
@@ -312,8 +356,16 @@ function Dashboard({ session }: { session: Session }) {
               itemCount={itemCount}
               aiRunCount={aiRunCount}
               citationCount={citationCount}
-              onNavigateToView={setActiveView}
+              onNavigateToView={(view) => {
+                setActiveView(view)
+                localStorage.setItem('activeView', view)
+              }}
               onTogglePanel={togglePanel}
+              activeProjectId={activeProjectId}
+              onOpenProject={handleOpenProject}
+              onBackToDirectory={handleBackToDirectory}
+              showNewProjectDialog={showNewProjectDialog}
+              onNewProjectDialogChange={setShowNewProjectDialog}
             />
           </div>
         </div>
@@ -363,9 +415,32 @@ interface MainContentProps {
   citationCount: number
   onNavigateToView: (view: ActiveView) => void
   onTogglePanel: () => void
+  activeProjectId: number | null
+  onOpenProject: (id: number) => void
+  onBackToDirectory: () => void
+  showNewProjectDialog: boolean
+  onNewProjectDialogChange: (open: boolean) => void
 }
 
-function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount, onNavigateToView, onTogglePanel }: MainContentProps) {
+function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount, onNavigateToView, onTogglePanel, activeProjectId, onOpenProject, onBackToDirectory, showNewProjectDialog, onNewProjectDialogChange }: MainContentProps) {
+  if (activeView === 'builder') {
+    return (
+      <div className="px-5 py-5 max-w-3xl mx-auto w-full">
+        {activeProjectId !== null
+          ? <ProjectWorkspace projectId={activeProjectId} onBack={onBackToDirectory} />
+          : (
+            <ProjectsDirectory
+              userId={userId}
+              onOpenProject={onOpenProject}
+              showDialog={showNewProjectDialog}
+              onDialogOpenChange={onNewProjectDialogChange}
+            />
+          )
+        }
+      </div>
+    )
+  }
+
   if (activeView === 'advisor')   return <AnalysisAdvisor onRunStart={onRunStart} userId={userId} />
   if (activeView === 'citations') return <CitationEngine onRunStart={onRunStart} userId={userId} />
   if (activeView === 'improve')   return <ImprovementAnalyzer onRunStart={onRunStart} userId={userId} />

@@ -1,4 +1,5 @@
-const DEFAULT_CEREBRAS_MODEL = import.meta.env.VITE_CEREBRAS_MODEL || 'llama3.3-70b'
+// llama3.1-8b has 60 RPM on the free tier — much more reliable than larger models
+const DEFAULT_CEREBRAS_MODEL = import.meta.env.VITE_CEREBRAS_MODEL || 'llama3.1-8b'
 
 export async function generateWithCerebras(prompt: string, model = DEFAULT_CEREBRAS_MODEL, maxTokens = 4096) {
   const body = {

@@ -45,3 +45,8 @@ dist-ssr
 .claude/memory/
 .claude/todos/
 .mcp.json
+
+
+
+
+.agent

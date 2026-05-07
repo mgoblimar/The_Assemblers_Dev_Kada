@@ -90,7 +90,7 @@ const DEFAULT_PROVIDER = (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'ce
 
 function defaultModel(provider: AIProvider): string {
   if (provider === 'gemini')   return import.meta.env.VITE_GEMINI_MODEL   || 'gemini-2.0-flash-lite'
-  if (provider === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama3.3-70b'
+  if (provider === 'cerebras') return import.meta.env.VITE_CEREBRAS_MODEL || 'llama3.1-8b'
   return import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile'
 }
 

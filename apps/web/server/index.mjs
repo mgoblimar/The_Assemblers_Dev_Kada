@@ -209,9 +209,13 @@ app.post('/api/groq', async (req, res) => {
       console.log(`[PROXY] Groq Response status: ${r.status}`)
       
       if (r.status === 429 && attempt < MAX_RETRIES) {
-        console.warn(`[PROXY] Groq rate limited (429). Retrying in 2s...`)
+        const retryAfter = r.headers.get('retry-after') || r.headers.get('x-ratelimit-reset-requests')
+        const waitMs = retryAfter
+          ? Math.min(parseFloat(retryAfter) * 1000, 30000)
+          : Math.min(1000 * 2 ** attempt, 16000)
+        console.warn(`[PROXY] Groq rate limited (429). Retrying in ${(waitMs / 1000).toFixed(1)}s...`)
         attempt++
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise(resolve => setTimeout(resolve, waitMs))
         continue
       }
 
@@ -221,7 +225,7 @@ app.post('/api/groq', async (req, res) => {
       console.error('[PROXY] Groq Error:', err)
       if (attempt < MAX_RETRIES) {
         attempt++
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
         continue
       }
       return res.status(500).json({ error: String(err.message) })
@@ -236,42 +240,74 @@ app.post('/api/cerebras', async (req, res) => {
     return res.status(500).json({ error: 'Missing CEREBRAS_API_KEY' })
   }
 
+  // Fallback chain: requested model first, then llama3.1-8b (only confirmed working model)
+  // Note: gpt-oss-120b → 404 on free tier; qwen-3-235b → 429; llama3.1-8b → works
+  const FALLBACK_MODEL = 'llama3.1-8b'
+  const requestedModel = req.body.model || FALLBACK_MODEL
+  const models = requestedModel === FALLBACK_MODEL
+    ? [FALLBACK_MODEL]
+    : [requestedModel, FALLBACK_MODEL]
+
   const MAX_RETRIES = 2
-  let attempt = 0
 
-  while (attempt <= MAX_RETRIES) {
-    try {
-      console.log(`[PROXY] Calling Cerebras model: ${req.body.model} (Attempt ${attempt + 1})`)
-      const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
-        },
-        body: JSON.stringify(req.body),
-      })
+  for (const model of models) {
+    let attempt = 0
+    let modelExhausted = false
 
-      console.log(`[PROXY] Cerebras Response status: ${r.status}`)
+    while (attempt <= MAX_RETRIES) {
+      try {
+        console.log(`[PROXY] Calling Cerebras model: ${model} (Attempt ${attempt + 1})`)
+        const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`,
+          },
+          body: JSON.stringify({ ...req.body, model }),
+        })
 
-      if (r.status === 429 && attempt < MAX_RETRIES) {
-        console.warn('[PROXY] Cerebras rate limited (429). Retrying in 2s...')
-        attempt++
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        continue
+        console.log(`[PROXY] Cerebras Response status: ${r.status}`)
+
+        if (r.status === 429) {
+          // Respect Retry-After header if present, otherwise use exponential backoff
+          const retryAfter = r.headers.get('Retry-After') || r.headers.get('x-ratelimit-reset-requests')
+          const waitMs = retryAfter
+            ? Math.min(parseFloat(retryAfter) * 1000, 30000)
+            : Math.min(1000 * 2 ** attempt, 16000) // 1s, 2s, 4s … capped at 16s
+
+          if (attempt < MAX_RETRIES) {
+            console.warn(`[PROXY] Cerebras rate limited (429) on ${model}. Retrying in ${(waitMs / 1000).toFixed(1)}s...`)
+            attempt++
+            await new Promise(resolve => setTimeout(resolve, waitMs))
+            continue
+          }
+
+          // All retries exhausted for this model — try the fallback
+          console.warn(`[PROXY] Cerebras rate limit exhausted for ${model}. Trying fallback.`)
+          modelExhausted = true
+          break
+        }
+
+        const data = await r.json()
+        return res.status(r.status).json(data)
+      } catch (err) {
+        console.error('[PROXY] Cerebras Error:', err)
+        if (attempt < MAX_RETRIES) {
+          attempt++
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          continue
+        }
+        modelExhausted = true
+        break
       }
-
-      const data = await r.json()
-      return res.status(r.status).json(data)
-    } catch (err) {
-      console.error('[PROXY] Cerebras Error:', err)
-      if (attempt < MAX_RETRIES) {
-        attempt++
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        continue
-      }
-      return res.status(500).json({ error: String(err.message) })
     }
+
+    if (!modelExhausted) break // succeeded
+    // loop continues to next model in fallback chain
   }
+
+  // All models exhausted
+  return res.status(429).json({ error: 'Cerebras rate limit exceeded on all models. Please wait a moment and try again.' })
 })
 
 // health

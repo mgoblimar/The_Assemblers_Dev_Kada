@@ -1,8 +1,8 @@
-import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, BrainCircuit, LogOut, HelpCircle, Users, Library } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, BarChart3, Bookmark, PenLine, Lightbulb, RefreshCw, BrainCircuit, LogOut, HelpCircle, Users, Library, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/shared/components/ui/button'
 
-export type ActiveView = 'dashboard' | 'research' | 'advisor' | 'citations' | 'improve' | 'topics' | 'peer-review' | 'library'
+export type ActiveView = 'dashboard' | 'builder' | 'research' | 'advisor' | 'citations' | 'improve' | 'topics' | 'peer-review' | 'library'
 
 interface SidebarProps {
   email: string
@@ -16,16 +16,43 @@ interface SidebarProps {
   onHelp: () => void
 }
 
-const NAV_ITEMS: { view: ActiveView; icon: React.ElementType; label: string; phase?: string }[] = [
-  { view: 'dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
-  { view: 'research',   icon: FolderOpen,      label: 'My Research' },
-  { view: 'advisor',    icon: BarChart3,        label: 'Analysis Advisor', phase: '9' },
-  { view: 'citations',  icon: Bookmark,         label: 'Citations',        phase: '10' },
-  { view: 'improve',    icon: PenLine,          label: 'Improve Writing',  phase: '11' },
-  { view: 'topics',     icon: Lightbulb,        label: 'Topic Builder',    phase: '12' },
-  { view: 'peer-review', icon: Users,           label: 'Peer Review',      phase: '14' },
-  { view: 'library',    icon: Library,          label: 'Ask My Library',   phase: '14' },
+const BUILDER_ITEMS: { view: ActiveView; icon: React.ElementType; label: string }[] = [
+  { view: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { view: 'builder',   icon: BookOpen,        label: 'Research Builder' },
 ]
+
+const TOOL_ITEMS: { view: ActiveView; icon: React.ElementType; label: string }[] = [
+  { view: 'research',    icon: FolderOpen,   label: 'My Research' },
+  { view: 'advisor',     icon: BarChart3,    label: 'Analysis Advisor' },
+  { view: 'citations',   icon: Bookmark,     label: 'Citations' },
+  { view: 'improve',     icon: PenLine,      label: 'Improve Writing' },
+  { view: 'topics',      icon: Lightbulb,    label: 'Topic Builder' },
+  { view: 'peer-review', icon: Users,        label: 'Peer Review' },
+  { view: 'library',     icon: Library,      label: 'Ask My Library' },
+]
+
+function NavButton({ view, icon: Icon, label, activeView, onViewChange }: {
+  view: ActiveView
+  icon: React.ElementType
+  label: string
+  activeView: ActiveView
+  onViewChange: (v: ActiveView) => void
+}) {
+  return (
+    <button
+      onClick={() => onViewChange(view)}
+      className={cn(
+        'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full text-left',
+        activeView === view
+          ? 'bg-primary text-primary-foreground shadow-sm'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      )}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="flex-1 truncate">{label}</span>
+    </button>
+  )
+}
 
 export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onViewChange, onLogout, onSync, onHelp }: SidebarProps) {
   const initials = email.substring(0, 2).toUpperCase()
@@ -38,7 +65,7 @@ export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onVi
           <BrainCircuit className="w-5 h-5 text-primary-foreground" />
         </div>
         <span className="font-extrabold text-lg tracking-tight">
-          Research<span className="text-primary">AI</span>
+          Dev<span className="text-primary">Kada</span>
         </span>
       </div>
 
@@ -57,26 +84,21 @@ export function Sidebar({ email, online, isSyncing, lastSynced, activeView, onVi
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-1 flex flex-col gap-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ view, icon: Icon, label, phase }) => (
-          <button
-            key={view}
-            onClick={() => onViewChange(view)}
-            className={cn(
-              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full text-left',
-              activeView === view
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            )}
-          >
-            <Icon className="w-4 h-4 shrink-0" />
-            <span className="flex-1 truncate">{label}</span>
-            {phase && activeView !== view && (
-              <span className="text-[9px] font-bold opacity-40 shrink-0">P{phase}</span>
-            )}
-          </button>
+        {/* Primary items */}
+        {BUILDER_ITEMS.map(item => (
+          <NavButton key={item.view} {...item} activeView={activeView} onViewChange={onViewChange} />
         ))}
 
-        {/* Help button */}
+        {/* Tools section */}
+        <div className="mt-3 mb-1 px-3">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Tools</span>
+        </div>
+
+        {TOOL_ITEMS.map(item => (
+          <NavButton key={item.view} {...item} activeView={activeView} onViewChange={onViewChange} />
+        ))}
+
+        {/* Help */}
         <button
           onClick={onHelp}
           className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all w-full text-left text-muted-foreground hover:bg-muted hover:text-foreground mt-1"
