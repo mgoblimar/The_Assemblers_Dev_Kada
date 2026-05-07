@@ -105,7 +105,7 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
-            title="Improve Writing — Phase 11"
+            title="Improve Writing"
             onClick={(e) => e.stopPropagation()}
           >
             <PenLine className="w-3 h-3" />
@@ -115,7 +115,7 @@ export function ResearchCard({ item, aiRunCount, isAnalyzing, onAnalyze, onViewD
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
-            title="Find Citations — Phase 10"
+            title="Find Citations"
             onClick={(e) => e.stopPropagation()}
           >
             <BookmarkPlus className="w-3 h-3" />

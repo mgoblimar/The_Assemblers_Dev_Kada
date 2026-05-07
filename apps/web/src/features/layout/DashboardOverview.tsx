@@ -6,7 +6,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { ArrowRight, BookOpen, BrainCircuit, FileInput, GraduationCap, LayoutGrid, PanelRight, PenLine, Search, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, BookOpen, BrainCircuit, FileInput, FileText, GraduationCap, HelpCircle, LayoutGrid, PanelRight, PenLine, Search, Sparkles, Users } from 'lucide-react'
 import type { ResearchItem } from '@/lib/db/database'
 
 interface DashboardOverviewProps {
@@ -14,14 +14,12 @@ interface DashboardOverviewProps {
   itemCount: number
   aiRunCount: number
   citationCount: number
+  projectCount: number
   showForm: boolean
   onItemCreated: () => void
   onToggleForm: () => void
   onNavigateToView: (view: ActiveView) => void
   onTogglePanel: () => void
-  onAnalyze: (item: ResearchItem) => void
-  onViewDetails: (itemId: number) => void
-  analyzingItemId: number | null
   refreshTrigger: number
   onItemCountChange: (count: number) => void
 }
@@ -70,8 +68,10 @@ const QUICK_ACTIONS: Array<{ view: ActiveView; label: string; description: strin
   { view: 'citations', label: 'Citations', description: 'Format and collect references.', icon: BookOpen },
   { view: 'improve', label: 'Improve Writing', description: 'Review clarity and argument strength.', icon: PenLine },
   { view: 'topics', label: 'Topic Builder', description: 'Move from ideas to an outline.', icon: GraduationCap },
+  { view: 'builder', label: 'Research Builder', description: 'Build AI-guided academic papers chapter by chapter.', icon: FileText },
   { view: 'peer-review', label: 'Peer Review', description: 'Check the work before sharing it.', icon: Users },
   { view: 'library', label: 'Ask My Library', description: 'Query your saved research knowledge.', icon: Search },
+  { view: 'help', label: 'Help & Status', description: 'Guide and server statistics.', icon: HelpCircle },
 ]
 
 export function DashboardOverview({
@@ -79,6 +79,7 @@ export function DashboardOverview({
   itemCount,
   aiRunCount,
   citationCount,
+  projectCount,
   showForm,
   onItemCreated,
   onToggleForm,
@@ -90,144 +91,160 @@ export function DashboardOverview({
   useEffect(() => {
     let cancelled = false
 
-    const loadItemCount = async () => {
+    const loadCounts = async () => {
       const items = await getResearchItems(userId)
       if (!cancelled) {
         onItemCountChange(items.length)
       }
     }
 
-    loadItemCount()
+    loadCounts()
 
     return () => {
       cancelled = true
     }
   }, [onItemCountChange, refreshTrigger, userId])
 
-  const steps = FLOW_STEPS
-
   return (
-    <div className="px-5 py-5 space-y-5 max-w-5xl mx-auto w-full">
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="rounded-2xl border bg-linear-to-br from-background via-background to-muted/20 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            <BrainCircuit className="w-3.5 h-3.5 text-primary" />
-            Research command center
-          </div>
-          <div className="mt-4 space-y-2">
-            <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
+    <div className="px-6 py-8 space-y-10 max-w-6xl mx-auto w-full animate-in fade-in duration-500">
+      {/* 1. Header & Status Strip */}
+      <header className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              <Sparkles className="w-3 h-3" />
+              Institutional Hub
+            </div>
+            <h1 className="text-4xl font-extrabold tracking-tight font-heading">Research Command</h1>
             <p className="max-w-2xl text-sm text-muted-foreground leading-relaxed">
-              Start with a research input, send it through analysis, then branch into writing, citations, topics,
-              peer review, or your library. This view stays high-level while My Research keeps the full item list.
+              Welcome to your agentic research environment. Orchestrate multi-step AI workflows, 
+              manage academic citations, and synthesize findings into peer-ready manuscripts.
             </p>
           </div>
-
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard label="Research items" value={itemCount} icon={LayoutGrid} />
-            <StatCard label="AI runs" value={aiRunCount} icon={Sparkles} />
-            <StatCard label="Citations" value={citationCount} icon={BookOpen} />
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button onClick={onToggleForm} className="gap-2">
-              <FileInput className="w-4 h-4" />
-              {showForm ? 'Hide input form' : 'Start with new research'}
-            </Button>
-            <Button variant="outline" onClick={() => onNavigateToView('research')} className="gap-2">
-              Open My Research
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" onClick={onTogglePanel} className="gap-2 text-muted-foreground">
-              <PanelRight className="w-4 h-4" />
-              Open AI panel
+          
+          <div className="flex flex-wrap gap-2">
+            <button 
+              type="button"
+              onClick={() => onToggleForm()} 
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors font-semibold uppercase tracking-widest text-[10px] h-9 px-5 rounded-md cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              {showForm ? 'Hide Form' : 'New Research'}
+            </button>
+            <Button variant="outline" size="sm" onClick={onTogglePanel} className="gap-2 border-border font-semibold uppercase tracking-widest text-[10px] h-9">
+              <PanelRight className="w-3 h-3" />
+              AI Panel
             </Button>
           </div>
         </div>
 
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">How it flows</p>
-              <h2 className="mt-1 text-lg font-bold">From input to output</h2>
-            </div>
-            <Badge variant="secondary" className="font-semibold">Guide</Badge>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Research items" value={itemCount} icon={LayoutGrid} />
+          <StatCard label="Projects" value={projectCount} icon={FileText} />
+          <StatCard label="AI runs" value={aiRunCount} icon={Sparkles} />
+          <StatCard label="Citations" value={citationCount} icon={BookOpen} />
+        </div>
+      </header>
+
+      {/* 2. Methodology Roadmap */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold font-heading">Methodology Roadmap</h2>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-[0.1em]">Recommended Research Lifecycle</p>
           </div>
+          <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-none">Active Flow</Badge>
+        </div>
 
-          <div className="mt-4 space-y-3">
-            {steps.map((step, index) => {
-              const Icon = step.icon
-              const stepAction =
-                step.action === 'form'
-                  ? onToggleForm
-                  : step.action === 'panel'
-                    ? onTogglePanel
-                    : () => onNavigateToView(step.action)
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {FLOW_STEPS.map((step, index) => {
+            const Icon = step.icon
+            const stepAction =
+              step.action === 'form'
+                ? onToggleForm
+                : step.action === 'panel'
+                  ? onTogglePanel
+                  : () => onNavigateToView(step.action)
 
-              return (
-                <button
-                  key={step.title}
-                  type="button"
-                  onClick={stepAction}
-                  className={cn(
-                    'w-full rounded-xl border p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/30',
-                    index === 0 && 'bg-primary/5 border-primary/20'
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                          Step {index + 1}
-                        </span>
-                        <span className="text-xs font-semibold text-primary">{step.actionLabel}</span>
-                      </div>
-                      <p className="mt-1 font-semibold leading-tight">{step.title}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{step.description}</p>
-                    </div>
+            return (
+              <button
+                key={step.title}
+                type="button"
+                onClick={stepAction}
+                className={cn(
+                  'relative flex flex-col p-5 rounded-xl border text-left transition-all hover:border-primary/40 hover:bg-muted/30 group bg-card shadow-sm',
+                  index === 0 && !showForm && 'ring-2 ring-primary/20 border-primary/40 bg-primary/[0.02]'
+                )}
+              >
+                <div className="mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-heading font-bold text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  {index + 1}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary transition-colors">
+                      {step.actionLabel}
+                    </span>
+                    <Icon className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary transition-colors" />
                   </div>
-                </button>
-              )
-            })}
-          </div>
+                  <p className="font-bold text-sm leading-tight font-heading">{step.title}</p>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-3">{step.description}</p>
+                </div>
+
+                {/* Connector line for desktop */}
+                {index < FLOW_STEPS.length - 1 && (
+                  <div className="hidden md:block absolute top-9 -right-2 w-4 h-px bg-border z-0" />
+                )}
+              </button>
+            )
+          })}
         </div>
       </section>
 
       {showForm && (
-        <section className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-          <div className="border-b px-5 py-4">
-            <h2 className="text-base font-bold">Capture a research input</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Paste text, drop a link, or seed a demo item. The dashboard uses this as the first step in the flow.
-            </p>
+        <section className="rounded-xl border bg-card shadow-md overflow-hidden animate-in slide-in-from-top-4 duration-300">
+          <div className="border-b bg-muted/20 px-6 py-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold font-heading">Capture Research Input</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Seed your library with URLs, PDFs, or raw scholarly notes.
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onToggleForm} className="h-8 w-8 text-muted-foreground">
+              <PanelRight className="w-3 h-3" />
+            </Button>
           </div>
-          <ResearchForm userId={userId} onItemCreated={onItemCreated} />
+          <div className="p-2 bg-background/50">
+            <ResearchForm userId={userId} onItemCreated={onItemCreated} />
+          </div>
         </section>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border shadow-sm">
-          <CardHeader className="space-y-2 pb-3">
-            <CardTitle className="text-base">Next actions</CardTitle>
-            <p className="text-sm text-muted-foreground">Jump from the dashboard into the next tool without hunting through the sidebar.</p>
+      {/* 3. Bottom Grid */}
+      <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <Card className="border shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="space-y-1 bg-muted/20 pb-4 border-b">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Quick Actions
+            </div>
+            <CardTitle className="text-lg font-heading">Scholarly Toolset</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2">
+          <CardContent className="grid gap-3 sm:grid-cols-2 p-6">
             {QUICK_ACTIONS.map(({ view, label, description, icon: Icon }) => (
               <button
                 key={view}
                 type="button"
                 onClick={() => onNavigateToView(view)}
-                className="rounded-xl border p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/30"
+                className="rounded-xl border p-4 text-left transition-all hover:border-primary/40 hover:bg-muted/30 group bg-background/50"
               >
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-lg bg-primary/10 p-2 text-primary">
+                  <div className="mt-0.5 rounded-lg bg-primary/10 p-2.5 text-primary group-hover:scale-110 transition-transform">
                     <Icon className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="font-semibold leading-tight">{label}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+                    <p className="font-bold text-sm leading-tight font-heading">{label}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{description}</p>
                   </div>
                 </div>
               </button>
@@ -235,23 +252,31 @@ export function DashboardOverview({
           </CardContent>
         </Card>
 
-        <Card className="border shadow-sm">
-          <CardHeader className="space-y-2 pb-3">
-            <CardTitle className="text-base">Dashboard promise</CardTitle>
-            <p className="text-sm text-muted-foreground">The dashboard explains the journey; My Research stores the working set.</p>
+        <Card className="border shadow-sm rounded-xl overflow-hidden flex flex-col">
+          <CardHeader className="space-y-1 bg-muted/20 pb-4 border-b">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              <GraduationCap className="w-3.5 h-3.5" />
+              Institutional Memo
+            </div>
+            <CardTitle className="text-lg font-heading">The Research Promise</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <CardContent className="space-y-5 p-6 text-sm text-muted-foreground leading-relaxed flex-1">
             <p>
-              Your inputs become research items. Those items can then be analyzed, improved, cited, expanded into
-              topics, reviewed by peers, or queried in the library.
+              Your inputs become immutable research items. Each item serves as the foundation for 
+              agentic analysis, reference discovery, and critical peer synthesis.
             </p>
             <p>
-              Use this view when you want a guided map of what happens next. Use My Research when you want the full
-              list, filters, and item-level detail.
+              This environment is designed for **validation** over generation. Maintain the highest 
+              standards of academic integrity through every stage of the workflow.
             </p>
-            <div className="rounded-xl border bg-muted/20 p-3 text-xs text-foreground/80">
-              <p className="font-semibold">Quick path</p>
-              <p className="mt-1">1. Add input 2. Analyze 3. Improve 4. Cite 5. Build topic 6. Review 7. Search library</p>
+            <div className="rounded-lg border bg-primary/5 p-4 text-[10px] text-foreground font-medium border-primary/10">
+              <p className="font-bold text-primary uppercase tracking-widest mb-2">Optimal Sequence</p>
+              <ol className="space-y-1.5 list-decimal list-inside text-muted-foreground">
+                <li>Capture deep-portal input</li>
+                <li>Execute agentic analysis</li>
+                <li>Synthesize topic outlines</li>
+                <li>Verify via peer review</li>
+              </ol>
             </div>
           </CardContent>
         </Card>
@@ -262,12 +287,12 @@ export function DashboardOverview({
 
 function StatCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
   return (
-    <div className="rounded-xl border bg-background p-3 shadow-sm">
+    <div className="rounded-xl border bg-background p-4 shadow-sm border-border/50 group hover:border-primary/20 transition-colors">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary transition-colors">{label}</p>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
       </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
+      <p className="mt-3 text-3xl font-bold tracking-tight font-heading">{value}</p>
     </div>
   )
 }

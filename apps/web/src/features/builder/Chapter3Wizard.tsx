@@ -3,7 +3,6 @@ import { useChapter3Runner } from './useChapter3Runner'
 import {
   CHAPTER3_ORDERED_STEPS,
   CHAPTER3_AI_STEPS,
-  chapter3StepLabel,
   chapter3StepProgress,
 } from './chapter3.machine'
 import { ResearchDesignStep } from './ResearchDesignStep'
@@ -13,6 +12,7 @@ import { DraftReviewStep } from './DraftReviewStep'
 
 interface Props {
   projectId: number
+  onGoToNext?: () => void
 }
 
 const VISIBLE_STEPS: ChapterStepId[] = [
@@ -33,13 +33,13 @@ const STEP_LABELS: Partial<Record<ChapterStepId, string>> = {
   method_done:                'Draft',
 }
 
-export function Chapter3Wizard({ projectId }: Props) {
+export function Chapter3Wizard({ projectId, onGoToNext }: Props) {
   const { chapterState, loading, aiRunning, error, selectDesign, submitLocale, submitSampling, submitAnalysis, retry } =
     useChapter3Runner(projectId)
 
   if (loading || !chapterState) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex items-center justify-center py-16">
         <span className="size-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
       </div>
     )
@@ -78,7 +78,7 @@ export function Chapter3Wizard({ projectId }: Props) {
           compiledDraft: chapterState.artifacts.ch3_compiledDraft,
         },
       }
-      return <DraftReviewStep state={draftState} />
+      return <DraftReviewStep state={draftState} onNextChapter={onGoToNext} nextChapterLabel="Projects Dashboard" />
     }
 
     if (currentStep === 'method_design_select') {
@@ -134,42 +134,48 @@ export function Chapter3Wizard({ projectId }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Progress header */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Chapter 3 Progress</span>
-          <span>{progress}%</span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Chapter III — Research Methodology</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{progress}%</span>
         </div>
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-          <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+        <div className="h-1 bg-muted overflow-hidden">
+          <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0">
           {VISIBLE_STEPS.map((step, idx) => {
             const isCompleted = idx < currentVisibleIdx
             const isCurrent   = idx === currentVisibleIdx
             return (
-              <div key={step} className="flex items-center gap-1 flex-1 min-w-0">
+              <div key={step} className="flex items-center flex-1 min-w-0">
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div className={`size-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors
-                    ${isCompleted ? 'bg-primary text-primary-foreground'
-                      : isCurrent  ? 'bg-primary/10 text-primary border border-primary'
-                      : 'bg-muted text-muted-foreground'}`}
+                  <div className={`size-5 flex items-center justify-center transition-colors
+                    ${isCompleted ? 'text-primary'
+                      : isCurrent  ? 'text-primary'
+                      : 'text-muted-foreground/40'}`}
                   >
                     {isCompleted ? (
-                      <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                       </svg>
-                    ) : idx + 1}
+                    ) : (
+                      <span className={`text-[9px] font-semibold uppercase tracking-wide
+                        ${isCurrent ? 'text-primary' : 'text-muted-foreground/40'}`}>
+                        {String.fromCharCode(8544 + idx)}
+                      </span>
+                    )}
                   </div>
-                  <span className={`text-[10px] whitespace-nowrap ${isCurrent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  <span className={`text-[10px] whitespace-nowrap font-medium
+                    ${isCurrent ? 'text-primary' : isCompleted ? 'text-muted-foreground' : 'text-muted-foreground/40'}`}>
                     {STEP_LABELS[step]}
                   </span>
                 </div>
                 {idx < VISIBLE_STEPS.length - 1 && (
-                  <div className={`flex-1 h-px mt-[-14px] transition-colors ${isCompleted ? 'bg-primary' : 'bg-muted'}`} />
+                  <div className={`flex-1 h-px mx-1 mb-4 transition-colors ${isCompleted ? 'bg-primary/40' : 'bg-border'}`} />
                 )}
               </div>
             )
@@ -178,13 +184,9 @@ export function Chapter3Wizard({ projectId }: Props) {
       </div>
 
       {/* Step content */}
-      <div className="rounded-xl border border-border bg-card p-6 min-h-[320px]">
+      <div className="rounded border border-border bg-card p-4 min-h-[260px]">
         {renderStep()}
       </div>
-
-      {CHAPTER3_AI_STEPS.includes(currentStep) && !isFailed && (
-        <p className="text-center text-xs text-muted-foreground">{chapter3StepLabel(currentStep)}</p>
-      )}
     </div>
   )
 }

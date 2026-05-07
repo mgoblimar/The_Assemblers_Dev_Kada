@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bookmark, Sparkles, Loader2, Copy, Check, ExternalLink, WifiOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import { Badge } from '@/shared/components/ui/badge'
+
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { db } from '@/lib/db/database'
 import { getResearchItems } from '@/lib/db/research-repository'
@@ -168,7 +168,6 @@ export function CitationEngine({ onRunStart, userId }: CitationEngineProps) {
         <div className="flex items-center gap-2">
           <Bookmark className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-extrabold tracking-tight">Citation Engine</h1>
-          <Badge variant="secondary" className="text-xs">Phase 10</Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Finds real academic references and formats them in APA 7, MLA 9, or Chicago 17.

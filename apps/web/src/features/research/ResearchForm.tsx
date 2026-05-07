@@ -7,6 +7,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
 import { toast } from '@/shared/components/ui/use-toast'
 import { Sparkles, Plus, Database, Loader2, FileText, ExternalLink, X, Mic, MicOff } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ResearchFormProps {
   userId?: string
@@ -223,51 +224,53 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
   }
 
   return (
-    <Card className="mb-8 border-none shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="border-none bg-transparent shadow-none">
+      <CardHeader className="flex flex-row items-center justify-between pb-4 px-6 pt-6">
         <div className="space-y-1">
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <Plus className="w-6 h-6 text-primary" />
-            New Research
+          <CardTitle className="text-xl font-bold font-heading flex items-center gap-2">
+            <Plus className="w-5 h-5 text-primary" />
+            New Research Input
           </CardTitle>
-          <CardDescription>Capture your thoughts or paste a source URL</CardDescription>
+          <CardDescription className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground/60">
+            Scholarly Source Ingestion
+          </CardDescription>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
           onClick={handleSeed}
           disabled={loading}
-          className="text-xs gap-1.5 font-medium"
+          className="h-8 text-[10px] uppercase tracking-widest font-bold gap-1.5 border-border hover:bg-muted"
         >
-          <Database className="w-3.5 h-3.5" />
+          <Database className="w-3 h-3" />
           Seed Demo
         </Button>
       </CardHeader>
 
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="px-6 pb-6 pt-0">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm font-medium">
+            <div className="p-3 bg-destructive/10 text-destructive rounded border border-destructive/20 text-xs font-bold uppercase tracking-wider text-center">
               {error}
             </div>
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="title" className="text-sm font-semibold text-gray-700">Title (Optional)</Label>
+            <Label htmlFor="title" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Title (Optional)</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Deep Sea Mining Impact"
+              placeholder="e.g., Deep Sea Mining Impact Analysis"
               disabled={loading}
-              className="h-10 border-gray-200 focus:border-primary focus:ring-primary/20"
+              className="h-10 border-border focus:border-primary focus:ring-primary/10 rounded-lg text-sm"
             />
           </div>
 
           <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="content" className="text-sm font-semibold text-gray-700">Content, URL, or Document</Label>
-              <div className="flex gap-1.5">
+            <div className="flex items-center justify-between mb-1">
+              <Label htmlFor="content" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Content, URL, or Document</Label>
+              <div className="flex gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -275,23 +278,15 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
                   className="hidden"
                   onChange={handleFileSelect}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
+                <SourceButton
+                  icon={FileText}
+                  label="PDF"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
-                  title="Upload a PDF file"
-                >
-                  <FileText className="w-3 h-3" />
-                  PDF
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
+                />
+                <SourceButton
+                  icon={ExternalLink}
+                  label="GDoc"
                   onClick={() => {
                     const url = prompt('Paste your Google Docs share URL:')
                     if (url?.includes('docs.google.com')) {
@@ -300,35 +295,26 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
                     }
                   }}
                   disabled={loading}
-                  title="Connect a Google Doc"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  Google Doc
-                </Button>
-                <Button
-                  type="button"
-                  variant={isRecording ? 'destructive' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
+                />
+                <SourceButton
+                  icon={isRecording ? MicOff : Mic}
+                  label="Voice"
+                  active={isRecording}
                   onClick={handleVoiceNote}
                   disabled={loading}
-                  title={isRecording ? 'Stop recording' : 'Record voice note'}
-                >
-                  {isRecording ? <MicOff className="w-3 h-3" /> : <Mic className="w-3 h-3" />}
-                  {isRecording ? 'Stop' : 'Voice'}
-                </Button>
+                />
               </div>
             </div>
 
             {attachedFile && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-xs font-medium">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-[10px] font-bold uppercase tracking-wider mb-2">
                 {attachedFile.type === 'pdf'
-                  ? <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                  : <ExternalLink className="w-3.5 h-3.5 text-primary shrink-0" />
+                  ? <FileText className="w-3 h-3 text-primary shrink-0" />
+                  : <ExternalLink className="w-3 h-3 text-primary shrink-0" />
                 }
                 <span className="flex-1 truncate text-primary">{attachedFile.name}</span>
                 <button type="button" onClick={clearAttachment} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             )}
@@ -337,27 +323,27 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
               id="content"
               value={sourceText}
               onChange={(e) => { setSourceText(e.target.value); setAttachedFile(null) }}
-              placeholder="Paste a URL (e.g. Nature, ScienceDirect, Google Docs), upload a PDF, or type your notes here..."
-              rows={5}
+              placeholder="Paste a URL (Nature, ScienceDirect), upload a PDF, or type your research notes..."
+              rows={6}
               disabled={loading}
-              className="resize-none border-gray-200 focus:border-primary focus:ring-primary/20"
+              className="resize-none border-border focus:border-primary focus:ring-primary/10 rounded-lg text-sm p-4 leading-relaxed"
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full h-11 text-base font-semibold gap-2 shadow-sm transition-all hover:translate-y-[-1px]">
+          <Button type="submit" disabled={loading} className="w-full h-11 text-xs font-bold uppercase tracking-[0.2em] gap-2 shadow-sm border-none">
             {scraping ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Reading Portal...
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Ingesting Portal...
               </>
             ) : loading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Saving...
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving to Vault...
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-4 h-4" />
                 Analyze Research
               </>
             )}
@@ -367,3 +353,23 @@ export function ResearchForm({ userId, onItemCreated }: ResearchFormProps) {
     </Card>
   )
 }
+
+function SourceButton({ icon: Icon, label, onClick, disabled, active }: { icon: any, label: string, onClick: () => void, disabled: boolean, active?: boolean }) {
+  return (
+    <Button
+      type="button"
+      variant={active ? 'destructive' : 'outline'}
+      size="sm"
+      className={cn(
+        "h-7 text-[9px] font-bold uppercase tracking-widest gap-1.5 px-2.5",
+        !active && "border-border hover:bg-muted"
+      )}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Icon className="w-2.5 h-2.5" />
+      {label}
+    </Button>
+  )
+}
+

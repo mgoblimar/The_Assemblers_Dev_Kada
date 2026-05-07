@@ -25,38 +25,41 @@ export function LocaleInputStep({
   const trimmed = text.trim()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        <h2 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
+          {title}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
       </div>
 
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        rows={7}
+        rows={6}
         disabled={aiRunning}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm
+        className="w-full rounded border border-border bg-card px-4 py-3 leading-relaxed
                    text-foreground placeholder:text-muted-foreground resize-none
-                   focus:outline-none focus:ring-2 focus:ring-primary/50
+                   focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary
                    disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{ fontFamily: 'var(--font-body)', fontSize: '0.9375rem', lineHeight: '1.75' }}
       />
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
           {trimmed.length} characters
           {trimmed.length > 0 && trimmed.length < minLength && (
-            <span className="text-amber-500 ml-2">— at least {minLength} characters required</span>
+            <span className="text-amber-600 ml-2">— at least {minLength} characters required</span>
           )}
         </p>
         <button
           type="button"
           onClick={() => onSubmit(trimmed)}
           disabled={aiRunning || trimmed.length < minLength}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5
+          className="inline-flex items-center gap-2 rounded bg-primary px-4 py-1.5
                      text-sm font-medium text-primary-foreground
-                     hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                     hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           {aiRunning ? (
             <>

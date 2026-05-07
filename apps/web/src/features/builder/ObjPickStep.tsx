@@ -32,10 +32,12 @@ export function ObjPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Pr
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Objectives of the Study</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
+          Objectives of the Study
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           Select the objectives that match your research goals. Each is aligned to one or more research questions.
         </p>
       </div>
@@ -62,17 +64,17 @@ export function ObjPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Pr
                 type="button"
                 onClick={() => toggle(obj.text)}
                 disabled={aiRunning}
-                className={`w-full text-left rounded-lg border p-4 transition-all
+                className={`w-full text-left rounded border p-4 transition-all cursor-pointer
                   ${isSelected
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border bg-card hover:border-primary/50'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-card hover:border-primary/40'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 size-5 rounded border-2 flex-shrink-0 flex items-center justify-center
+                  <div className={`mt-1 size-4 rounded-sm border-2 flex-shrink-0 flex items-center justify-center
                     ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'}`}>
                     {isSelected && (
-                      <svg viewBox="0 0 10 8" className="size-3 text-primary-foreground fill-current">
+                      <svg viewBox="0 0 10 8" className="size-2.5 text-primary-foreground fill-current">
                         <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
@@ -105,10 +107,10 @@ export function ObjPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Pr
           type="button"
           onClick={handleSubmit}
           disabled={aiRunning || selected.size === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5
+          className="inline-flex items-center gap-2 rounded bg-primary px-4 py-1.5
                      text-sm font-medium text-primary-foreground
                      hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+                     transition-colors cursor-pointer"
         >
           {aiRunning ? (
             <>

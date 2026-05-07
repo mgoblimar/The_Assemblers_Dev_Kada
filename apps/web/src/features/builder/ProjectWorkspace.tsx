@@ -42,35 +42,37 @@ export function ProjectWorkspace({ projectId, onBack }: Props) {
     getOrCreateChapterState(projectId, 'chapter-1').then(setCh1State).catch(() => null)
   }, [projectId])
 
-  const ch1Done = ch1State?.currentStep === 'done'
+  const ch1Done = ch1State?.currentStep === 'done' || ch1State?.currentStep === 'compile_draft'
   const isDisabled = (id: ChapterId) =>
     COMING_SOON.includes(id) || (id === 'chapter-2' && !ch1Done) || (id === 'chapter-3' && !ch1Done)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Workspace header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pb-4 border-b border-border">
         <button
           type="button"
           onClick={onBack}
-          className="size-8 rounded-lg border border-border flex items-center justify-center
-                     text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="size-8 rounded border border-border flex items-center justify-center
+                     text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
           aria-label="Back to projects"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
         </button>
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-foreground truncate">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-bold text-foreground leading-tight"
+              title={project?.title}
+              style={{ fontFamily: 'var(--font-heading)', fontSize: '1.125rem' }}>
             {project?.title ?? 'Loading…'}
           </h1>
-          <p className="text-xs text-muted-foreground">Research Project</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Academic Research Paper</p>
         </div>
       </div>
 
       {/* Chapter tabs */}
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+      <div className="flex items-stretch gap-1 overflow-x-auto border-b border-border pb-0">
         {CHAPTERS.map(ch => {
           const disabled = isDisabled(ch.id)
           const isActive = activeChapter === ch.id
@@ -81,16 +83,16 @@ export function ProjectWorkspace({ projectId, onBack }: Props) {
               type="button"
               disabled={disabled}
               onClick={() => !disabled && setActiveChapter(ch.id)}
-              className={`flex-shrink-0 rounded-lg border px-4 py-2.5 text-left transition-all
+              className={`flex-shrink-0 px-4 py-2 text-left transition-all border-b-2 -mb-px
                 ${isActive
-                  ? 'border-primary bg-primary/5 text-primary'
+                  ? 'border-b-primary text-primary bg-primary/5'
                   : disabled
-                    ? 'border-border bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
-                    : 'border-border bg-card text-foreground hover:border-primary/50'
+                    ? 'border-b-transparent text-muted-foreground cursor-not-allowed opacity-40'
+                    : 'border-b-transparent text-muted-foreground hover:text-foreground hover:border-b-border cursor-pointer'
                 }`}
             >
-              <p className="text-xs font-semibold">{ch.label}</p>
-              <p className="text-[10px] text-current opacity-70 mt-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide">{ch.label}</p>
+              <p className="text-[10px] mt-0.5 text-current opacity-75">
                 {isComingSoon ? 'Coming soon' : ch.subtitle}
               </p>
             </button>
@@ -100,20 +102,28 @@ export function ProjectWorkspace({ projectId, onBack }: Props) {
 
       {/* Unlock hint */}
       {!ch1Done && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground bg-muted/40 border border-border rounded px-4 py-2 text-center">
           Complete Chapter 1 to unlock Chapters 2 and 3.
         </p>
       )}
 
       {/* Active chapter content */}
       {activeChapter === 'chapter-1' && (
-        <Chapter1Wizard projectId={projectId} onDone={handleCh1Done} />
+        <Chapter1Wizard 
+          projectId={projectId} 
+          onDone={handleCh1Done} 
+          onGoToNext={() => setActiveChapter('chapter-2')} 
+        />
       )}
       {activeChapter === 'chapter-2' && ch1Done && (
-        <Chapter2Wizard projectId={projectId} ch1State={ch1State} />
+        <Chapter2Wizard 
+          projectId={projectId} 
+          ch1State={ch1State} 
+          onGoToNext={() => setActiveChapter('chapter-3')} 
+        />
       )}
       {activeChapter === 'chapter-3' && ch1Done && (
-        <Chapter3Wizard projectId={projectId} />
+        <Chapter3Wizard projectId={projectId} onGoToNext={onBack} />
       )}
     </div>
   )

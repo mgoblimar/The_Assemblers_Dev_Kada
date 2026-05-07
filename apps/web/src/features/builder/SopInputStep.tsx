@@ -21,10 +21,12 @@ export function SopInputStep({ state, onSubmit, onContinueAnyway, aiRunning }: P
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Statement of the Problem</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
+          Statement of the Problem
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           Write a clear description of the research problem you want to investigate. Include the context,
           what gap exists in current knowledge, and why it matters. Aim for 150–400 words.
         </p>
@@ -41,13 +43,14 @@ export function SopInputStep({ state, onSubmit, onContinueAnyway, aiRunning }: P
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
-          rows={10}
+          rows={8}
           disabled={aiRunning}
           placeholder="The study examines..."
-          className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm
+          className="w-full rounded border border-border bg-card px-4 py-3 leading-relaxed
                      text-foreground placeholder:text-muted-foreground resize-none
-                     focus:outline-none focus:ring-2 focus:ring-primary/50
+                     focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary
                      disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ fontFamily: 'var(--font-body)', fontSize: '0.9375rem', lineHeight: '1.75' }}
         />
 
         <div className="flex items-center justify-between">
@@ -60,10 +63,10 @@ export function SopInputStep({ state, onSubmit, onContinueAnyway, aiRunning }: P
           <button
             type="submit"
             disabled={aiRunning || text.trim().length < 50}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5
+            className="inline-flex items-center gap-2 rounded bg-primary px-4 py-1.5
                        text-sm font-medium text-primary-foreground
                        hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed
-                       transition-colors"
+                       transition-colors cursor-pointer"
           >
             {aiRunning ? (
               <>

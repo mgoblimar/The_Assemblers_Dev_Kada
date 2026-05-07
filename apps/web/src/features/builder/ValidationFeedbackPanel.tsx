@@ -33,28 +33,29 @@ export function ValidationFeedbackPanel({ validation, onContinueAnyway }: Props)
   const canContinue = validation.score >= CONTINUE_ANYWAY_THRESHOLD
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 overflow-hidden">
+    <div className="rounded border border-amber-300/60 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-800/50 overflow-hidden">
       {/* Score bar */}
-      <div className="px-4 pt-4 pb-3 border-b border-amber-200">
+      <div className="px-4 pt-3.5 pb-3 border-b border-amber-200/70 dark:border-amber-800/40">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-amber-800">Quality Score</span>
-          <span className={`text-2xl font-bold tabular-nums ${scoreColor(validation.score)}`}>
-            {validation.score}<span className="text-sm font-normal text-amber-700">/100</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-400">Academic Quality Score</span>
+          <span className={`text-xl font-bold tabular-nums ${scoreColor(validation.score)}`}
+                style={{ fontFamily: 'var(--font-heading)' }}>
+            {validation.score}<span className="text-sm font-normal text-amber-600 dark:text-amber-500">/100</span>
           </span>
         </div>
 
         {/* Progress bar */}
-        <div className="h-2 rounded-full bg-amber-200 overflow-hidden">
+        <div className="h-1 bg-amber-200 dark:bg-amber-800/50">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${scoreBg(validation.score)}`}
+            className={`h-full transition-all duration-500 ${scoreBg(validation.score)}`}
             style={{ width: `${validation.score}%` }}
           />
         </div>
 
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-xs text-amber-700">{scoreLabel(validation.score)}</span>
-          <span className="text-xs text-amber-600">
-            {validation.score >= 65 ? 'Passes automatically at 65+' : `${65 - validation.score} pts to auto-pass`}
+          <span className="text-xs text-amber-700 dark:text-amber-400 italic">{scoreLabel(validation.score)}</span>
+          <span className="text-[10px] text-amber-600 dark:text-amber-500">
+            {validation.score >= 65 ? 'Passes at 65+' : `${65 - validation.score} pts to auto-pass`}
           </span>
         </div>
       </div>
@@ -63,11 +64,11 @@ export function ValidationFeedbackPanel({ validation, onContinueAnyway }: Props)
       <div className="px-4 py-3 space-y-3 text-sm">
         {validation.issues.length > 0 && (
           <div>
-            <p className="font-semibold text-amber-800 mb-1">Issues to address:</p>
-            <ul className="space-y-1 text-amber-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-400 mb-1.5">Issues to address</p>
+            <ul className="space-y-1 text-amber-700 dark:text-amber-300">
               {validation.issues.map((issue, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="mt-0.5 shrink-0">•</span>
+                <li key={i} className="flex items-start gap-2 text-xs leading-relaxed">
+                  <span className="mt-0.5 shrink-0 text-amber-500">▸</span>
                   <span>{issue}</span>
                 </li>
               ))}
@@ -77,10 +78,10 @@ export function ValidationFeedbackPanel({ validation, onContinueAnyway }: Props)
 
         {validation.suggestions.length > 0 && (
           <div>
-            <p className="font-semibold text-amber-800 mb-1">Suggestions:</p>
-            <ul className="space-y-1 text-amber-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-400 mb-1.5">Suggestions</p>
+            <ul className="space-y-1 text-amber-700 dark:text-amber-300">
               {validation.suggestions.map((s, i) => (
-                <li key={i} className="flex items-start gap-2">
+                <li key={i} className="flex items-start gap-2 text-xs leading-relaxed">
                   <span className="mt-0.5 shrink-0 text-amber-500">→</span>
                   <span>{s}</span>
                 </li>
@@ -90,21 +91,21 @@ export function ValidationFeedbackPanel({ validation, onContinueAnyway }: Props)
         )}
 
         {validation.attempt > 1 && (
-          <p className="text-xs text-amber-600">Attempt {validation.attempt}</p>
+          <p className="text-[10px] text-amber-600 dark:text-amber-500">Attempt {validation.attempt}</p>
         )}
       </div>
 
       {/* Continue anyway */}
       {canContinue && onContinueAnyway && (
-        <div className="px-4 pb-4">
-          <div className="rounded-lg border border-amber-300 bg-amber-100/60 px-3 py-2.5 flex items-center justify-between gap-3">
-            <p className="text-xs text-amber-800">
-              Your score is <strong>{validation.score}/100</strong>. You can continue with your current draft and refine it later.
+        <div className="px-4 pb-3.5">
+          <div className="rounded border border-amber-300/60 bg-amber-100/50 dark:bg-amber-900/30 px-3 py-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+              Score <strong>{validation.score}/100</strong> — you may continue with your current draft.
             </p>
             <button
               type="button"
               onClick={onContinueAnyway}
-              className="shrink-0 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700 whitespace-nowrap"
+              className="shrink-0 text-xs font-semibold text-amber-900 dark:text-amber-300 underline underline-offset-2 hover:text-amber-700 whitespace-nowrap cursor-pointer"
             >
               Continue anyway →
             </button>

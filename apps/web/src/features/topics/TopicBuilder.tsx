@@ -108,7 +108,6 @@ export function TopicBuilder({ onRunStart, userId }: TopicBuilderProps) {
         <div className="flex items-center gap-2">
           <Lightbulb className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-extrabold tracking-tight">Topic Builder</h1>
-          <Badge variant="secondary" className="text-xs">Phase 12</Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Generates scored research topics and builds full chapter outlines.

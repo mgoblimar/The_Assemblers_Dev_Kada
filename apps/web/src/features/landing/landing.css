@@ -1,0 +1,57 @@
+
+/* Clean Academic Landing Styles */
+
+.academic-bg {
+  background-color: var(--background);
+  background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
+  background-size: 24px 24px;
+}
+
+.card-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.hero-gradient {
+  background: linear-gradient(to bottom, transparent, var(--muted)/30);
+}
+
+.nav-blur {
+  background: rgba(var(--background), 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.section-divider {
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+
+.section-divider::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 2px;
+  background: var(--primary);
+}
+
+.academic-button-glow {
+  box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+  transition: box-shadow 0.3s ease;
+}
+
+.academic-button-glow:hover {
+  box-shadow: 0 0 15px rgba(var(--primary), 0.15);
+}
+
+.feature-icon-container {
+  background: var(--primary-foreground);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.feature-icon-container:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}

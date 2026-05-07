@@ -42,10 +42,12 @@ export function ThemeConfirmStep({ state, ch1State, onConfirm, aiRunning }: Prop
   const validThemes = themes.filter(t => t.trim().length > 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Research Themes</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
+          Research Themes
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           These themes guide the literature review. They were derived from your research questions —
           review and edit them as needed before the AI writes Chapter 2.
         </p>
@@ -59,16 +61,16 @@ export function ThemeConfirmStep({ state, ch1State, onConfirm, aiRunning }: Prop
               value={theme}
               onChange={e => updateTheme(i, e.target.value)}
               disabled={aiRunning}
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm
-                         text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50
+              className="flex-1 rounded border border-border bg-card px-3 py-2 text-sm
+                         text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary
                          disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               type="button"
               onClick={() => removeTheme(i)}
               disabled={aiRunning || themes.length <= 1}
-              className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10
-                         disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10
+                         disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
               aria-label="Remove theme"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -88,16 +90,16 @@ export function ThemeConfirmStep({ state, ch1State, onConfirm, aiRunning }: Prop
           onKeyDown={handleKeyDown}
           disabled={aiRunning}
           placeholder="Add a theme…"
-          className="flex-1 rounded-lg border border-dashed border-border bg-background px-3 py-2 text-sm
-                     text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2
-                     focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded border border-dashed border-border bg-card px-3 py-2 text-sm
+                     text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1
+                     focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="button"
           onClick={addTheme}
           disabled={aiRunning || !newTheme.trim()}
-          className="p-2 rounded-lg text-primary hover:bg-primary/10 disabled:opacity-30
-                     disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded border border-border text-primary hover:bg-primary/10 hover:border-primary/50
+                     disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
           aria-label="Add theme"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -114,9 +116,9 @@ export function ThemeConfirmStep({ state, ch1State, onConfirm, aiRunning }: Prop
           type="button"
           onClick={() => onConfirm(validThemes)}
           disabled={aiRunning || validThemes.length === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5
+          className="inline-flex items-center gap-2 rounded bg-primary px-4 py-1.5
                      text-sm font-medium text-primary-foreground
-                     hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                     hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           {aiRunning ? (
             <>

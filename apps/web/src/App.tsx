@@ -4,17 +4,18 @@ import { ResearchForm } from '@/features/research/ResearchForm'
 import { ResearchList } from '@/features/research/ResearchList'
 import { Sidebar, type ActiveView } from '@/features/layout/Sidebar'
 import { AIWorkflowPanel } from '@/features/layout/AIWorkflowPanel'
-import { StatusBar } from '@/features/layout/StatusBar'
 import { Auth } from '@/features/auth/Auth'
-import { HelpModal } from '@/features/help/HelpModal'
+import { HelpAndStatusView } from '@/features/help/HelpAndStatusView'
 import { processOutbox, fetchRemoteData } from '@/lib/sync/outbox-processor'
 import { supabase } from '@/lib/sync/supabase'
 import { runAgenticWorkflow } from '@/lib/ai/agent'
 import { db } from '@/lib/db/database'
 import type { AIRun, ResearchItem } from '@/lib/db/database'
 import { Session } from '@supabase/supabase-js'
-import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { cn } from '@/lib/utils'
+
+import { ThemeProvider, ThemeToggle } from '@/components/ThemeProvider'
 
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Toaster } from '@/shared/components/ui/toaster'
@@ -26,11 +27,11 @@ import { PeerReview } from '@/features/peer-review/PeerReview'
 import { AskLibrary } from '@/features/library/AskLibrary'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { ResearchDetailsModal } from '@/features/research/ResearchDetailsModal'
-import { Search, Plus, Trash2, PanelLeft, PanelRight, Home } from 'lucide-react'
+import { Search, Plus, Trash2, PanelLeft, PanelRight, Home, BrainCircuit } from 'lucide-react'
 import { DashboardOverview } from '@/features/layout/DashboardOverview'
 import { ProjectsDirectory } from '@/features/builder/ProjectsDirectory'
 import { ProjectWorkspace } from '@/features/builder/ProjectWorkspace'
-import { getActiveProjectId, setActiveProjectId } from '@/lib/db/project-repository'
+import { getActiveProjectId, setActiveProjectId, getProjects } from '@/lib/db/project-repository'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -50,25 +51,27 @@ function App() {
   if (loading) return null
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage isAuthenticated={!!session} />} />
-        <Route 
-          path="/login" 
-          element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="login" />} 
-        />
-        <Route 
-          path="/signup" 
-          element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="signup" />} 
-        />
-        <Route 
-          path="/dashboard/*" 
-          element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage isAuthenticated={!!session} />} />
+          <Route 
+            path="/login" 
+            element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="login" />} 
+          />
+          <Route 
+            path="/signup" 
+            element={session ? <Navigate to="/dashboard" replace /> : <Auth defaultMode="signup" />} 
+          />
+          <Route 
+            path="/dashboard/*" 
+            element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 
@@ -95,7 +98,7 @@ function Dashboard({ session }: { session: Session }) {
   const [outboxCount, setOutboxCount] = useState(0)
   const [aiRunCount, setAiRunCount] = useState(0)
   const [citationCount, setCitationCount] = useState(0)
-  const [showHelp, setShowHelp] = useState(false)
+  const [projectCount, setProjectCount] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('sidebar-open') !== 'false')
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem('panel-open') !== 'false')
   const [selectedResearchItemId, setSelectedResearchItemId] = useState<number | null>(null)
@@ -151,11 +154,12 @@ function Dashboard({ session }: { session: Session }) {
     db.outbox.where('status').equals('pending').count().then(setOutboxCount)
   }, [refreshTrigger])
 
-  // AI run counts
+  // AI run counts & project count
   useEffect(() => {
     db.aiRuns.count().then(setAiRunCount)
     db.aiRuns.where('prompt').equals('Citation Engine').count().then(setCitationCount)
-  }, [refreshTrigger])
+    getProjects(session.user.id).then(projects => setProjectCount(projects.length))
+  }, [refreshTrigger, session.user.id])
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -250,100 +254,111 @@ function Dashboard({ session }: { session: Session }) {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* 3-column body */}
-      <div className="flex flex-1 min-h-0">
-        {/* Sidebar — hidden on mobile, togglable on desktop */}
-        {sidebarOpen && (
-          <div className="hidden md:flex">
-            <Sidebar
-              email={session.user.email ?? ''}
-              online={online}
-              isSyncing={isSyncing}
-              lastSynced={lastSynced}
-              activeView={activeView}
-              onViewChange={(view) => {
-                setActiveView(view)
-                localStorage.setItem('activeView', view)
-              }}
-              onLogout={() => supabase.auth.signOut()}
-              onSync={() => triggerSync(true)}
-              onHelp={() => setShowHelp(true)}
+      {/* Persistent Top Header */}
+      <header className="h-10 border-b flex items-center justify-between px-4 bg-card shrink-0 z-30 shadow-sm">
+        <div className="flex items-center gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-1 rounded-md shadow-sm">
+              <BrainCircuit className="w-3.5 h-3.5 text-primary-foreground" />
+            </div>
+            <span className="font-extrabold text-lg tracking-tight text-foreground select-none" style={{ fontFamily: 'Fraunces, serif' }}>
+              Peer<span className="text-primary italic">EvAI</span>
+            </span>
+          </div>
+
+          <div className="h-5 w-px bg-border mx-1" />
+
+          {/* Sidebar toggle */}
+          <button
+            onClick={toggleSidebar}
+            title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all active:scale-95 cursor-pointer"
+          >
+            <PanelLeft className={cn("w-3 h-3 transition-transform duration-300", !sidebarOpen && "rotate-180")} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative w-56 hidden sm:block">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-8 h-7 text-[10px] bg-muted/50 border-border rounded-full focus-visible:ring-1 transition-all focus:bg-background w-full"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-        )}
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top bar */}
-          <div className="h-14 border-b flex items-center gap-2 px-3 shrink-0 bg-background/80 backdrop-blur-md">
-            {/* Sidebar toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-8 h-8 text-muted-foreground hover:text-foreground shrink-0"
-              onClick={toggleSidebar}
-              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          <div className="h-5 w-px bg-border mx-0.5" />
+
+          {topBarAction && (
+            <button
+              onClick={topBarAction.onClick}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
-              <PanelLeft className="w-4 h-4" />
-            </Button>
+              <Plus className="w-2.5 h-2.5" />
+              {topBarAction.label}
+            </button>
+          )}
 
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                className="pl-8 h-8 text-sm bg-muted/40 border-0 focus-visible:ring-1"
-                placeholder="Search your research…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex-1" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-8 h-8 text-muted-foreground hover:text-foreground"
+          <div className="flex items-center gap-0.5">
+            <button
               onClick={() => navigate('/')}
-              title="Go to Landing Page"
+              title="Landing page"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
-              <Home className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-8 h-8 text-muted-foreground hover:text-destructive"
+              <Home className="w-3 h-3" />
+            </button>
+
+            <button
               onClick={handleReset}
               title="Reset demo data"
               disabled={isSyncing}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-            {topBarAction && (
-              <Button
-                size="sm"
-                className="h-8 gap-1.5 text-xs font-semibold"
-                onClick={topBarAction.onClick}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {topBarAction.label}
-              </Button>
-            )}
+              <Trash2 className="w-3 h-3" />
+            </button>
 
             {/* AI panel toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-8 h-8 text-muted-foreground hover:text-foreground shrink-0 hidden lg:flex"
+            <button
               onClick={togglePanel}
               title={panelOpen ? 'Close AI panel' : 'Open AI panel'}
+              className="w-7 h-7 hidden lg:flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
-              <PanelRight className="w-4 h-4" />
-            </Button>
-          </div>
+              <PanelRight className="w-3 h-3" />
+            </button>
 
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto">
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+
+      {/* Main Layout Area */}
+      <main className="flex-1 flex min-h-0 overflow-hidden relative">
+        {/* Sidebar */}
+        <aside className="hidden md:flex flex-col border-r bg-card shrink-0 z-10 transition-all duration-300">
+          <Sidebar
+            email={session.user.email ?? ''}
+            isSyncing={isSyncing}
+            lastSynced={lastSynced}
+            activeView={activeView}
+            onViewChange={(view) => {
+              setActiveView(view)
+              localStorage.setItem('activeView', view)
+            }}
+            onLogout={() => supabase.auth.signOut()}
+            onSync={() => triggerSync(true)}
+            isCollapsed={!sidebarOpen}
+          />
+        </aside>
+
+        {/* Content Area */}
+        <section className="flex-1 flex flex-col min-w-0 min-h-0 bg-background overflow-hidden relative">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <MainContent
               userId={session.user.id}
-              activeView={activeView}
+              activeView={activeView || 'dashboard'}
               showForm={showForm}
               onItemCreated={handleItemCreated}
               onToggleForm={() => setShowForm(v => !v)}
@@ -354,8 +369,11 @@ function Dashboard({ session }: { session: Session }) {
               onRunStart={(runId, title) => { setActiveRunId(runId); setActiveRunTitle(title) }}
               onItemCountChange={handleItemCountChange}
               itemCount={itemCount}
+              online={online}
+              outboxCount={outboxCount}
               aiRunCount={aiRunCount}
               citationCount={citationCount}
+              projectCount={projectCount}
               onNavigateToView={(view) => {
                 setActiveView(view)
                 localStorage.setItem('activeView', view)
@@ -368,26 +386,20 @@ function Dashboard({ session }: { session: Session }) {
               onNewProjectDialogChange={setShowNewProjectDialog}
             />
           </div>
-        </div>
+        </section>
 
-        {/* AI panel — hidden on mobile, togglable on desktop */}
+        {/* AI panel */}
         {panelOpen && (
-          <div className="hidden lg:flex">
+          <aside className="hidden lg:flex flex-col border-l bg-card shrink-0 z-10">
             <AIWorkflowPanel
               runId={activeRunId}
               itemTitle={activeRunTitle}
               onCancel={() => { setActiveRunId(null); setActiveRunTitle(null) }}
               onViewReport={handleViewReport}
             />
-          </div>
+          </aside>
         )}
-      </div>
-
-      {/* Status bar */}
-      <StatusBar itemCount={itemCount} online={online} outboxCount={outboxCount} />
-
-      {/* Help modal */}
-      <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
+      </main>
 
       {/* Research Details Modal */}
       <ResearchDetailsModal
@@ -411,8 +423,11 @@ interface MainContentProps {
   onRunStart: (runId: number, title: string) => void
   onItemCountChange: (count: number) => void
   itemCount: number
+  online: boolean
+  outboxCount: number
   aiRunCount: number
   citationCount: number
+  projectCount: number
   onNavigateToView: (view: ActiveView) => void
   onTogglePanel: () => void
   activeProjectId: number | null
@@ -422,10 +437,10 @@ interface MainContentProps {
   onNewProjectDialogChange: (open: boolean) => void
 }
 
-function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, aiRunCount, citationCount, onNavigateToView, onTogglePanel, activeProjectId, onOpenProject, onBackToDirectory, showNewProjectDialog, onNewProjectDialogChange }: MainContentProps) {
+function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm, refreshTrigger, analyzingItemId, onAnalyze, onViewDetails, onRunStart, onItemCountChange, itemCount, online, outboxCount, aiRunCount, citationCount, projectCount, onNavigateToView, onTogglePanel, activeProjectId, onOpenProject, onBackToDirectory, showNewProjectDialog, onNewProjectDialogChange }: MainContentProps) {
   if (activeView === 'builder') {
     return (
-      <div className="px-5 py-5 max-w-3xl mx-auto w-full">
+      <div className="px-5 py-5 max-w-4xl mx-auto w-full">
         {activeProjectId !== null
           ? <ProjectWorkspace projectId={activeProjectId} onBack={onBackToDirectory} />
           : (
@@ -447,10 +462,11 @@ function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm
   if (activeView === 'topics')    return <TopicBuilder onRunStart={onRunStart} userId={userId} />
   if (activeView === 'peer-review') return <PeerReview onRunStart={onRunStart} userId={userId} />
   if (activeView === 'library')     return <AskLibrary userId={userId} />
+  if (activeView === 'help')        return <HelpAndStatusView itemCount={itemCount} online={online} outboxCount={outboxCount} />
 
   if (activeView === 'research') {
     return (
-      <div className="px-5 py-5 space-y-5 max-w-2xl mx-auto w-full">
+      <div className="px-5 py-5 space-y-5 max-w-3xl mx-auto w-full">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">My Research</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -480,6 +496,7 @@ function MainContent({ userId, activeView, showForm, onItemCreated, onToggleForm
       itemCount={itemCount}
       aiRunCount={aiRunCount}
       citationCount={citationCount}
+      projectCount={projectCount}
       showForm={showForm}
       onItemCreated={onItemCreated}
       onToggleForm={onToggleForm}

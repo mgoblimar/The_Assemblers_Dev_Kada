@@ -10,10 +10,10 @@ interface Props {
 }
 
 const TYPE_COLORS: Record<RqSuggestion['type'], string> = {
-  descriptive:  'bg-blue-50 text-blue-700 border-blue-200',
-  comparative:  'bg-purple-50 text-purple-700 border-purple-200',
-  causal:       'bg-rose-50 text-rose-700 border-rose-200',
-  exploratory:  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  descriptive:  'bg-secondary/10 text-secondary border-secondary/30',
+  comparative:  'bg-accent/10 text-accent border-accent/30',
+  causal:       'bg-primary/10 text-primary border-primary/30',
+  exploratory:  'bg-muted text-muted-foreground border-border',
 }
 
 export function RqPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Props) {
@@ -39,12 +39,14 @@ export function RqPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Pro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Research Questions</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
+          Research Questions
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           Select the research questions that best fit your study. You may select multiple.
-          AI-generated based on your Statement of the Problem.
+          These were generated based on your Statement of the Problem.
         </p>
       </div>
 
@@ -70,27 +72,27 @@ export function RqPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Pro
                 type="button"
                 onClick={() => toggle(rq.text)}
                 disabled={aiRunning}
-                className={`w-full text-left rounded-lg border p-4 transition-all
+                className={`w-full text-left rounded border p-4 transition-all cursor-pointer
                   ${isSelected
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border bg-card hover:border-primary/50'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-card hover:border-primary/40'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 size-5 rounded border-2 flex-shrink-0 flex items-center justify-center
+                  <div className={`mt-1 size-4 rounded-sm border-2 flex-shrink-0 flex items-center justify-center
                     ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'}`}>
                     {isSelected && (
-                      <svg viewBox="0 0 10 8" className="size-3 text-primary-foreground fill-current">
+                      <svg viewBox="0 0 10 8" className="size-2.5 text-primary-foreground fill-current">
                         <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground leading-relaxed">{rq.text}</p>
+                    <p className="text-sm text-foreground leading-relaxed">{rq.text}</p>
                     {rq.rationale && (
-                      <p className="text-xs text-muted-foreground mt-1">{rq.rationale}</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed italic">{rq.rationale}</p>
                     )}
-                    <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded border font-medium capitalize ${TYPE_COLORS[rq.type]}`}>
+                    <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded border font-semibold uppercase tracking-wide ${TYPE_COLORS[rq.type]}`}>
                       {rq.type}
                     </span>
                   </div>
@@ -109,10 +111,10 @@ export function RqPickStep({ state, onSelect, onContinueAnyway, aiRunning }: Pro
           type="button"
           onClick={handleSubmit}
           disabled={aiRunning || selected.size === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5
+          className="inline-flex items-center gap-2 rounded bg-primary px-4 py-1.5
                      text-sm font-medium text-primary-foreground
                      hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+                     transition-colors cursor-pointer"
         >
           {aiRunning ? (
             <>

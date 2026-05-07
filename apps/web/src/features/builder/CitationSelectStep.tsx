@@ -16,9 +16,9 @@ const SCOPE_LABELS: Record<string, string> = {
 }
 
 const SCOPE_COLORS: Record<string, string> = {
-  foreign:     'bg-blue-50 text-blue-700 border-blue-200',
-  local:       'bg-green-50 text-green-700 border-green-200',
-  theoretical: 'bg-purple-50 text-purple-700 border-purple-200',
+  foreign:     'bg-secondary/10 text-secondary border-secondary/30',
+  local:       'bg-primary/10 text-primary border-primary/30',
+  theoretical: 'bg-accent/10 text-accent border-accent/30',
 }
 
 export function CitationSelectStep({ state, onConfirm, aiRunning }: Props) {
@@ -59,32 +59,34 @@ export function CitationSelectStep({ state, onConfirm, aiRunning }: Props) {
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Suggested Citations</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
+          Suggested Citations
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           Review the citations below and select the ones you want included in your literature review.
           The AI will incorporate your chosen sources when writing each section.
         </p>
       </div>
 
       {/* Scope filter tabs */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap border-b border-border pb-3">
         {FILTERS.map(f => (
           <button
             key={f.key}
             type="button"
             onClick={() => setFilter(f.key)}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors
+            className={`inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs font-medium transition-colors cursor-pointer
               ${filter === f.key
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                : 'border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
               }`}
           >
             {f.label}
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold
-              ${filter === f.key ? 'bg-white/20' : 'bg-background'}`}>
+            <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold
+              ${filter === f.key ? 'bg-white/20' : 'bg-muted'}`}>
               {f.count}
             </span>
           </button>
@@ -123,7 +125,7 @@ export function CitationSelectStep({ state, onConfirm, aiRunning }: Props) {
               type="button"
               onClick={() => toggle(citation.id)}
               disabled={aiRunning}
-              className={`w-full text-left rounded-lg border p-3.5 transition-all
+              className={`w-full text-left rounded border p-3.5 transition-all cursor-pointer
                 ${isSelected
                   ? 'border-primary bg-primary/5'
                   : 'border-border bg-card hover:border-primary/40'
@@ -180,9 +182,9 @@ export function CitationSelectStep({ state, onConfirm, aiRunning }: Props) {
           type="button"
           onClick={() => onConfirm(Array.from(selected))}
           disabled={aiRunning || selected.size === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5
+          className="inline-flex items-center gap-2 rounded bg-primary px-4 py-1.5
                      text-sm font-medium text-primary-foreground
-                     hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                     hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           {aiRunning ? (
             <>

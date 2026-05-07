@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BarChart3, Sparkles, Loader2, ChevronDown, ChevronUp, WifiOff, Trophy, Info } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import { Badge } from '@/shared/components/ui/badge'
+
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card'
 import { db } from '@/lib/db/database'
 import { getResearchItems } from '@/lib/db/research-repository'
@@ -85,7 +85,6 @@ export function AnalysisAdvisor({ onRunStart, userId }: AnalysisAdvisorProps) {
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-primary" />
           <h1 className="text-2xl font-extrabold tracking-tight">Analysis Advisor</h1>
-          <Badge variant="secondary" className="text-xs">Phase 9</Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Recommends the right statistical or qualitative methods for your research.

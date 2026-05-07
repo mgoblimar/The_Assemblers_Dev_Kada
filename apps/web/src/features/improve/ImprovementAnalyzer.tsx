@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PenLine, Sparkles, Loader2, ChevronDown, ChevronUp, WifiOff, AlertTriangle, ArrowRight } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import { Badge } from '@/shared/components/ui/badge'
+
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { db } from '@/lib/db/database'
 import { getResearchItems } from '@/lib/db/research-repository'
@@ -93,8 +93,7 @@ export function ImprovementAnalyzer({ onRunStart, userId }: ImprovementAnalyzerP
       <div>
         <div className="flex items-center gap-2">
           <PenLine className="w-5 h-5 text-primary" />
-          <h1 className="text-2xl font-extrabold tracking-tight">Improve Writing</h1>
-          <Badge variant="secondary" className="text-xs">Phase 11</Badge>
+          <h1 className="text-2xl font-extrabold tracking-tight">Improvement Analyzer</h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Scores coherence, audits arguments, detects gaps, and suggests rewrites.

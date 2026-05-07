@@ -1,6 +1,19 @@
 import { Button } from '@/shared/components/ui/button'
-import { Brain, Database, BookOpen, ArrowRight, GraduationCap } from 'lucide-react'
+import { 
+  BrainCircuit, 
+  BookOpen, 
+  ArrowRight, 
+  GraduationCap, 
+  Shield, 
+  Sparkles, 
+  Search, 
+  PenLine,
+  Users,
+  BarChart3
+} from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Badge } from '@/shared/components/ui/badge'
+import './landing.css'
 
 interface LandingPageProps {
   isAuthenticated?: boolean
@@ -10,161 +23,286 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen academic-bg text-foreground font-body selection:bg-primary/20 selection:text-primary overflow-x-hidden">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                <Brain className="w-5 h-5" />
-              </div>
-              <span className="text-xl font-bold tracking-tight text-slate-900">AIPeer</span>
+      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
+          <div className="flex items-center gap-2.5 group cursor-pointer">
+            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-primary-foreground shadow-sm">
+              <BrainCircuit className="w-5 h-5" />
             </div>
-            <div className="flex items-center gap-4">
-              {isAuthenticated ? (
-                <Button onClick={() => navigate('/dashboard')} variant="default" className="bg-indigo-600 hover:bg-indigo-700">
-                  Go to Dashboard
-                </Button>
-              ) : (
-                <>
-                  <Link 
-                    to="/login"
-                    className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-                    <Link to="/signup">Get Started</Link>
-                  </Button>
-                </>
-              )}
-            </div>
+            <span className="text-xl font-bold tracking-tight font-heading">
+              AIPeer<span className="text-primary">.</span>
+            </span>
           </div>
-        </div>
-      </nav>
+          
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</a>
+            <a href="#workflow" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Workflow</a>
+            <a href="#trust" className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Trust</a>
+          </div>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-6">
-            <GraduationCap className="w-3.5 h-3.5" />
-            Your AI Research Peer Reviewer
-          </div>
-          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
-            Elevate Your Research with <span className="text-indigo-600">AIPeer</span>
-          </h1>
-          <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-            The perfect synergy of AI intelligence and rigorous peer review. Organize, analyze, and validate your research library with an agentic peer in your pocket.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex items-center gap-4">
             {isAuthenticated ? (
-              <Button onClick={() => navigate('/dashboard')} size="lg" className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 gap-2">
-                Continue to App <ArrowRight className="w-5 h-5" />
+              <Button onClick={() => navigate('/dashboard')} size="sm" className="gap-2 px-4">
+                Dashboard <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             ) : (
               <>
-                <Button asChild size="lg" className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 gap-2">
-                  <Link to="/signup">
-                    Start Your Library <ArrowRight className="w-5 h-5" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="h-14 px-8 text-lg border-slate-200 text-slate-600 hover:bg-slate-50">
-                  <Link to="/login">View Demo</Link>
+                <Link 
+                  to="/login"
+                  className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Button asChild size="sm" className="px-4">
+                  <Link to="/signup">Get Started</Link>
                 </Button>
               </>
             )}
           </div>
         </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-40 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-border">
+        <div className="text-center space-y-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mx-auto">
+            <GraduationCap className="w-3.5 h-3.5" />
+            Institutional Grade Research Agent
+          </div>
+          
+          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight font-heading leading-tight text-foreground max-w-4xl mx-auto">
+            Elevate Your Scholarship with <span className="text-primary italic">Surgical</span> Precision
+          </h1>
+          
+          <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+            The perfect synergy of AI intelligence and rigorous academic peer review. 
+            Organize, analyze, and validate your research library with an agentic peer in your pocket.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            {isAuthenticated ? (
+              <Button onClick={() => navigate('/dashboard')} size="lg" className="h-12 px-8 text-sm font-semibold uppercase tracking-widest gap-2">
+                Continue Research <ArrowRight className="w-4 h-4" />
+              </Button>
+            ) : (
+              <>
+                <Button asChild size="lg" className="h-12 px-8 text-sm font-semibold uppercase tracking-widest gap-2">
+                  <Link to="/signup">
+                    Start Your Library <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="h-12 px-8 text-sm font-semibold uppercase tracking-widest border-border hover:bg-muted/50 transition-all">
+                  <Link to="/login">View Live Demo</Link>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Dashboard Preview Mockup */}
+        <div className="mt-20 mx-auto max-w-5xl rounded-2xl border bg-card shadow-2xl p-4 overflow-hidden relative">
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-border" />
+              <div className="w-2.5 h-2.5 rounded-full bg-border" />
+              <div className="w-2.5 h-2.5 rounded-full bg-border" />
+            </div>
+            <div className="h-5 flex-1 bg-muted/30 rounded flex items-center px-3">
+              <span className="text-[10px] text-muted-foreground">aipeer.academic/dashboard</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[300px]">
+            <div className="bg-muted/20 rounded-xl border border-border/50 p-4 space-y-4">
+              <div className="h-3 w-1/2 bg-primary/20 rounded" />
+              <div className="space-y-2">
+                <div className="h-2 w-full bg-muted rounded" />
+                <div className="h-2 w-5/6 bg-muted rounded" />
+              </div>
+              <div className="h-24 bg-background rounded-lg border border-border/30" />
+            </div>
+            <div className="md:col-span-2 bg-muted/10 rounded-xl border border-border/50 p-6 space-y-6">
+              <div className="flex justify-between">
+                <div className="h-4 w-1/4 bg-primary/30 rounded" />
+                <div className="h-4 w-12 bg-muted rounded" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-20 bg-background rounded-lg border border-border/30" />
+                <div className="h-20 bg-background rounded-lg border border-border/30" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-2 w-full bg-muted rounded" />
+                <div className="h-2 w-full bg-muted rounded" />
+                <div className="h-2 w-3/4 bg-muted rounded" />
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-card to-transparent" />
+        </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 bg-slate-50 border-y border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-slate-900">Advanced Research Tools</h2>
-            <p className="mt-4 text-slate-600 max-w-2xl mx-auto">
-              A comprehensive suite of tools built to handle the complexities of modern academic workflows.
+      {/* Feature Section (Dashboard Vibe) */}
+      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              <Sparkles className="w-3.5 h-3.5" />
+              The Scholarly Suite
+            </div>
+            <h2 className="text-3xl font-bold font-heading">Beyond Simple AI</h2>
+            <p className="text-muted-foreground max-w-xl">
+              Mirroring the rigorous standards of top-tier academic journals, our tools are built for validation and critical synthesis.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={Brain}
-              title="AI Analysis"
-              description="Get instant summaries, key takeaways, and critical analysis of your research papers with our agentic AI workflows."
-            />
-            <FeatureCard 
-              icon={Database}
-              title="Research Database"
-              description="Keep all your papers, notes, and findings in one place. Synced across devices and accessible anywhere."
-            />
-            <FeatureCard 
-              icon={BookOpen}
-              title="Citation Engine"
-              description="Automatically generate and manage citations. Build topics and connect ideas across multiple sources."
-            />
+          <Button variant="outline" className="text-[11px] uppercase tracking-widest font-bold h-9">
+            Explore All Tools
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <FeatureCard 
+            icon={Sparkles}
+            title="Analysis Advisor"
+            description="Choose the optimal academic methodology for each unique research item."
+            tag="Strategic"
+          />
+          <FeatureCard 
+            icon={BookOpen}
+            title="Citation Engine"
+            description="Automatically collect and format references with institutional precision."
+            tag="Scholarly"
+          />
+          <FeatureCard 
+            icon={PenLine}
+            title="Improve Writing"
+            description="Check clarity, identify argument gaps, and strengthen your academic prose."
+            tag="Drafting"
+          />
+          <FeatureCard 
+            icon={BrainCircuit}
+            title="Topic Builder"
+            description="Synthesize scattered findings into cohesive outlines and research topics."
+            tag="Synthesis"
+          />
+        </div>
+      </section>
+
+      {/* Workflow Section (The Flow Card) */}
+      <section id="workflow" className="py-24 bg-muted/30 border-y border-border">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl font-bold font-heading text-foreground">The Academic Flow</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Follow the journey from raw research input to verified scholarly output.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border bg-card p-8 shadow-sm max-w-3xl mx-auto">
+            <div className="flex items-center justify-between gap-3 mb-8">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">The Journey</p>
+                <h2 className="mt-1 text-xl font-bold font-heading">Input to Verification</h2>
+              </div>
+              <Badge variant="secondary" className="font-bold text-[10px] uppercase tracking-wider">Methodology</Badge>
+            </div>
+
+            <div className="space-y-4">
+              <WorkflowStep 
+                number="01"
+                icon={Search}
+                title="Deep Capture"
+                description="Import papers, URLs, or notes into a structured, searchable local library."
+              />
+              <WorkflowStep 
+                number="02"
+                icon={BarChart3}
+                title="Agentic Analysis"
+                description="Our multi-step AI workflow extracts themes and methodological clues."
+              />
+              <WorkflowStep 
+                number="03"
+                icon={Users}
+                title="Peer Synthesis"
+                description="Finalize your research with peer review checks and topic expansion."
+              />
+            </div>
+            
+            <div className="mt-10 p-4 rounded-xl border bg-muted/50 text-[11px] text-muted-foreground leading-relaxed italic text-center">
+              "The dashboard explains the journey; My Research stores the working set."
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-16 items-center">
-            <div className="flex-1">
-              <h2 className="text-3xl font-bold text-slate-900 mb-8">The Research Methodology</h2>
-              <div className="space-y-8">
-                <Step 
-                  number="01"
-                  title="Collect"
-                  description="Import your research papers and documents into your secure local library."
-                />
-                <Step 
-                  number="02"
-                  title="Analyze"
-                  description="Use our AI workflows to extract insights, identify methodologies, and evaluate findings."
-                />
-                <Step 
-                  number="03"
-                  title="Synthesize"
-                  description="Build topics, generate citations, and transform scattered research into a cohesive knowledge base."
-                />
+      {/* Trust & Credentials */}
+      <section id="trust" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="space-y-10">
+            <div className="space-y-4">
+              <h2 className="text-3xl font-bold font-heading">Institutional Trust</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Built for researchers who demand more than just chatbots. AIPeer is designed to handle the complexity of professional academic workflows.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <div className="text-3xl font-bold font-heading text-primary">Offline-First</div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Local Persistence</p>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold font-heading text-primary">Privacy Focus</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Secure Data</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold font-heading text-primary">Academic Grade</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Peer Standards</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold font-heading text-primary">99.9% Sync</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-widest font-bold">Reliable Cloud</div>
               </div>
             </div>
-            <div className="flex-1 w-full max-w-xl">
-              <div className="aspect-square bg-indigo-50 rounded-2xl border border-indigo-100 p-8 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:20px_20px]"></div>
-                <div className="relative z-10 space-y-4 w-full">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex items-center gap-4 animate-pulse">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 shrink-0"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-2 bg-slate-100 rounded w-1/2"></div>
-                        <div className="h-2 bg-slate-50 rounded w-3/4"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <TestimonialCard 
+              quote="AIPeer has completely transformed how I handle my literature reviews. The agentic workflow is like having a postdoc assistant 24/7."
+              author="Dr. Sarah Chen"
+              role="Senior Researcher"
+            />
+            <TestimonialCard 
+              quote="The offline-first approach is a lifesaver. I can work in the field without worrying about connection, and everything syncs perfectly later."
+              author="Marcus Thorne"
+              role="Field Scientist"
+            />
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-slate-100 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center text-white">
-              <Brain className="w-3.5 h-3.5" />
+      <footer className="py-16 border-t border-border bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center text-primary-foreground">
+                <BrainCircuit className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-bold tracking-tight font-heading">AIPeer<span className="text-primary">.</span></span>
             </div>
-            <span className="font-bold text-slate-900">AIPeer</span>
+            <div className="flex gap-8">
+              <a href="#" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Privacy</a>
+              <a href="#" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Terms</a>
+              <a href="#" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Contact</a>
+            </div>
           </div>
-          <p className="text-sm text-slate-500">© 2026 AIPeer. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a href="#" className="text-sm text-slate-400 hover:text-slate-600 transition-colors">Privacy</a>
-            <a href="#" className="text-sm text-slate-400 hover:text-slate-600 transition-colors">Terms</a>
-            <a href="#" className="text-sm text-slate-400 hover:text-slate-600 transition-colors">Contact</a>
+          <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-border/50 gap-4">
+            <p className="text-[11px] text-muted-foreground">© 2026 AIPeer. DevKada 2026 Hackathon | The Assemblers.</p>
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <Shield className="w-4 h-4" />
+              <span className="text-[11px] uppercase tracking-[0.2em] font-bold">Secure Manuscript Storage</span>
+            </div>
           </div>
         </div>
       </footer>
@@ -172,26 +310,58 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
   )
 }
 
-function FeatureCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
+function FeatureCard({ icon: Icon, title, description, tag }: { icon: any, title: string, description: string, tag: string }) {
   return (
-    <div className="bg-white p-8 rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-lg transition-all group">
-      <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-        <Icon className="w-6 h-6" />
+    <div className="rounded-xl border bg-card p-6 transition-all hover:border-primary/40 hover:bg-muted/10 group">
+      <div className="flex justify-between items-start mb-4">
+        <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+          <Icon className="w-5 h-5" />
+        </div>
+        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">{tag}</Badge>
       </div>
-      <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
-      <p className="text-slate-600 leading-relaxed">{description}</p>
+      <h3 className="text-base font-bold mb-2 font-heading">{title}</h3>
+      <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
     </div>
   )
 }
 
-function Step({ number, title, description }: { number: string, title: string, description: string }) {
+function WorkflowStep({ number, icon: Icon, title, description }: { number: string, icon: any, title: string, description: string }) {
   return (
-    <div className="flex gap-6">
-      <div className="text-2xl font-black text-indigo-100 tracking-tighter leading-none shrink-0 pt-1">{number}</div>
-      <div>
-        <h4 className="text-lg font-bold text-slate-900 mb-1">{title}</h4>
-        <p className="text-slate-600">{description}</p>
+    <div className="w-full rounded-xl border border-border p-4 text-left transition-all hover:border-primary/40 hover:bg-muted/30">
+      <div className="flex items-start gap-4">
+        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-heading font-bold text-sm">
+          {number}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Icon className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Process Stage</span>
+          </div>
+          <p className="font-bold leading-tight font-heading">{title}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+        </div>
       </div>
     </div>
   )
 }
+
+function TestimonialCard({ quote, author, role }: { quote: string, author: string, role: string }) {
+  return (
+    <div className="rounded-2xl border bg-card p-8 shadow-sm space-y-4">
+      <div className="flex gap-1">
+        {[1,2,3,4,5].map(i => <Sparkles key={i} className="w-3 h-3 text-primary" />)}
+      </div>
+      <p className="text-sm text-foreground leading-relaxed italic">"{quote}"</p>
+      <div className="flex items-center gap-3 pt-2">
+        <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+          {author.substring(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <div className="text-xs font-bold">{author}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{role}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
