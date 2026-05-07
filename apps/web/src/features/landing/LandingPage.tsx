@@ -20,8 +20,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import './landing.css'
 import logoWhite from '@/assets/Logo/LogoWhiteBG-removebg-preview.png'
 
-// ── Placeholder video URL — replace with actual demo link ──
-const VIDEO_DEMO_URL = '#video-demo'
+// ── Demo video URL ──
+const VIDEO_DEMO_URL = 'https://drive.google.com/file/d/1cdQ9jb5XEMEQggj4FLfmYnedXidWMoGZ/preview'
 
 interface LandingPageProps {
   isAuthenticated?: boolean
@@ -75,8 +75,15 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative pt-40 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-border">
+      <section className="relative pt-24 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-border">
         <div className="text-center space-y-8">
+          <div className="flex flex-col items-center gap-6 mb-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <img src={logoWhite} alt="PeerEvAI Logo" className="h-24 sm:h-32 w-auto object-contain drop-shadow-2xl" />
+            <span className="text-6xl sm:text-8xl font-extrabold tracking-tighter font-heading select-none">
+              Peer<span className="text-primary italic">EvAI</span>
+            </span>
+          </div>
+
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mx-auto">
             <GraduationCap className="w-3.5 h-3.5" />
             AI-Guided Academic Research Builder
@@ -296,16 +303,13 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
             Watch how a complete Chapter 1 is generated from a single research topic in under 5 minutes.
           </p>
 
-          {/* Video placeholder — replace href and this block with an actual embed when ready */}
-          <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 aspect-video flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-primary/10 transition-colors group"
-               onClick={() => window.open(VIDEO_DEMO_URL, '_blank')}>
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-              <Play className="w-7 h-7 text-primary fill-primary ml-1" />
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-foreground">Demo video coming soon</p>
-              <p className="text-xs text-muted-foreground mt-1">Replace <code className="text-primary">VIDEO_DEMO_URL</code> in LandingPage.tsx with your link</p>
-            </div>
+          <div className="rounded-2xl border-2 border-primary/20 bg-black shadow-2xl overflow-hidden aspect-video">
+            <iframe
+              src={VIDEO_DEMO_URL}
+              className="w-full h-full"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+            ></iframe>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
